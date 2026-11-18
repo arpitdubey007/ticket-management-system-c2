@@ -11,6 +11,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.ticketmanagement.domain.AssistantUnavailableException;
 import com.ticketmanagement.domain.InvalidTransitionException;
 import com.ticketmanagement.domain.TicketConflictException;
 import com.ticketmanagement.domain.TicketNotFoundException;
@@ -86,6 +87,17 @@ public class GlobalExceptionHandler {
                 "Request validation failed.",
                 request.getRequestURI(),
                 fieldErrors));
+    }
+
+    @ExceptionHandler(AssistantUnavailableException.class)
+    public ResponseEntity<ApiError> handleAssistantUnavailable(
+            AssistantUnavailableException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "SERVICE_UNAVAILABLE",
+                ex.getMessage(),
+                request.getRequestURI(),
+                null));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

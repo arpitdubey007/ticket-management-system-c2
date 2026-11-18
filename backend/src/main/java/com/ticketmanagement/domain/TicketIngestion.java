@@ -102,6 +102,10 @@ public class TicketIngestion {
         return indexedVersion;
     }
 
+    public void setIndexedVersion(Long indexedVersion) {
+        this.indexedVersion = indexedVersion;
+    }
+
     public int getAttemptCount() {
         return attemptCount;
     }

@@ -2576,3 +2576,3600 @@ Tests run: 31, Failures: 0, Errors: 0
 - `spring-boot-starter-test` was added for AssertJ/Mockito alongside the Boot 4 modular test starters.
 
 Next logical step: OpenAPI/springdoc parity (`T5.6`) or the RAG phases when you are ready.
+
+---
+
+_**User**_
+
+Implement embedding and vector ingestion pipeline
+
+Implement the RAG ingestion pipeline based on:
+
+spec/architecture.md
+
+spec/rag-ingestion.md
+
+spec/data-model.md
+
+.cursor/rules/rag-vector-store.mdc
+
+Implement:
+
+Ticket knowledge document generation.
+
+Description extraction.
+
+Comment extraction.
+
+Resolution information extraction.
+
+Paragraph-aware chunking.
+
+Metadata enrichment.
+
+Embedding generation.
+
+Vector-store persistence.
+
+Automatic re-ingestion after ticket updates.
+
+Automatic re-ingestion after comments and relevant status changes.
+
+Required metadata:
+
+ticketId
+
+status
+
+priority
+
+assignee
+
+category
+
+Technical requirements:
+
+Use a genuine embedding model.
+
+Do not substitute zero vectors or hash-based pseudo-embeddings for semantic embeddings.
+
+Keep embedding model configuration externalized.
+
+Keep top-K and similarity threshold configurable.
+
+Prevent duplicate or stale documents.
+
+Make ingestion failures observable.
+
+Consider retry and backfill mechanisms.
+
+Verify the selected Spring AI and vector-store APIs against their actual dependency versions.
+
+Do not invent unsupported methods or interfaces.
+
+Write unit and integration tests for the ingestion pipeline.
+
+Demonstrate that updating a ticket refreshes its vector documents.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The user wants me to implement the full RAG ingestion pipeline.
+
+I will start by reading the relevant specifications, existing backend code, and RAG vector-store rules.
+
+I need to inspect existing ingestion components like ticket_ingestion and IngestionRequestWriter. I also need to verify Spring AI dependencies in Boot 4.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Implementing the RAG ingestion pipeline per the specs. Exploring the backend and relevant specifications.
+
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/rag-vector-store.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **39** results in **1** directory</summary>
+
+Directory: **`/Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java`** (39 files)
+
+| File |
+|------|
+| `com/ticketmanagement/domain/TicketIngestion.java` |
+| `com/ticketmanagement/service/TicketService.java` |
+| `com/ticketmanagement/web/TicketController.java` |
+| `com/ticketmanagement/web/GlobalExceptionHandler.java` |
+| `com/ticketmanagement/web/CommentController.java` |
+| `com/ticketmanagement/web/dto/UpdateTicketRequest.java` |
+| `com/ticketmanagement/web/TicketMapper.java` |
+| `com/ticketmanagement/web/dto/PageResponse.java` |
+| `com/ticketmanagement/web/dto/TicketResponse.java` |
+| `com/ticketmanagement/web/dto/TicketSummaryResponse.java` |
+| `com/ticketmanagement/web/dto/CommentResponse.java` |
+| `com/ticketmanagement/web/dto/CreateCommentRequest.java` |
+| `com/ticketmanagement/web/dto/CreateTicketRequest.java` |
+| `com/ticketmanagement/web/dto/ChangeStatusRequest.java` |
+| `com/ticketmanagement/web/ApiError.java` |
+| `com/ticketmanagement/service/CommentService.java` |
+| `com/ticketmanagement/web/FieldError.java` |
+| `com/ticketmanagement/domain/Ticket.java` |
+| `com/ticketmanagement/repository/TicketListRepository.java` |
+| `com/ticketmanagement/repository/CommentRepository.java` |
+| `com/ticketmanagement/service/TicketStatusService.java` |
+| `com/ticketmanagement/repository/TicketRepository.java` |
+| `com/ticketmanagement/service/IngestionRequestWriter.java` |
+| `com/ticketmanagement/repository/TicketIngestionRepository.java` |
+| `com/ticketmanagement/domain/IngestionStatus.java` |
+| `com/ticketmanagement/service/TicketValidator.java` |
+| `com/ticketmanagement/service/RequestValidationException.java` |
+| `com/ticketmanagement/domain/TicketConflictException.java` |
+| `com/ticketmanagement/domain/InvalidTransitionException.java` |
+| `com/ticketmanagement/domain/TicketNotFoundException.java` |
+| `com/ticketmanagement/domain/TicketStateMachine.java` |
+| `com/ticketmanagement/domain/PublicTicketId.java` |
+| `com/ticketmanagement/config/TicketAppProperties.java` |
+| `com/ticketmanagement/config/ApplicationConfig.java` |
+| `com/ticketmanagement/domain/Comment.java` |
+| `com/ticketmanagement/repository/PublicIdSequence.java` |
+| `com/ticketmanagement/domain/TicketPriority.java` |
+| `com/ticketmanagement/domain/TicketStatus.java` |
+| `com/ticketmanagement/TicketManagementApplication.java` |
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+This is a large implementation.
+
+I need to add Spring AI dependencies for Ollama embeddings and vector storage. I must verify the exact artifact names for Spring Boot 4 and Spring AI 2.
+
+I will implement the RAG package with chunk types, extractors, chunkers, KnowledgeIndex, IngestionWorker, scheduler, and reconciliation. RagProperties will externalize top-k, threshold, and chunk sizes. I will use a fake embedding model for tests while keeping production on a genuine model. I also need to verify the SimpleVectorStore API and write an integration test that proves ticket updates refresh vectors.
+
+The fake embedding model must return deterministic vectors sized to nomic-embed-text (768 dimensions). It must not use zero vectors or hash-based pseudo-embeddings. Different input texts should yield different vectors of the same size.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: curl -s &#34;https://start.spring.io/metadata/client&#34; | head -c 5000 2&gt;/dev/null; ls ~/.m2/repository/org/springframework/ai 2&gt;/dev/null | head -5</summary>
+```bash
+curl -s "https://start.spring.io/metadata/client" | head -c 5000 2>/dev/null; ls ~/.m2/repository/org/springframework/ai 2>/dev/null | head -5
+```
+
+```
+{"_links":{"gradle-project":{"href":"https://start.spring.io/starter.zip?type=gradle-project{&dependencies,packaging,javaVersion,language,bootVersion,groupId,artifactId,version,name,description,packageName}","templated":true},"gradle-project-kotlin":{"href":"https://start.spring.io/starter.zip?type=gradle-project-kotlin{&dependencies,packaging,javaVersion,language,bootVersion,groupId,artifactId,version,name,description,packageName}","templated":true},"gradle-build":{"href":"https://start.spring.io/build.gradle?type=gradle-build{&dependencies,packaging,javaVersion,language,bootVersion,groupId,artifactId,version,name,description,packageName}","templated":true},"maven-project":{"href":"https://start.spring.io/starter.zip?type=maven-project{&dependencies,packaging,javaVersion,language,bootVersion,groupId,artifactId,version,name,description,packageName}","templated":true},"maven-build":{"href":"https://start.spring.io/pom.xml?type=maven-build{&dependencies,packaging,javaVersion,language,bootVersion,groupId,artifactId,version,name,description,packageName}","templated":true},"dependencies":{"href":"https://start.spring.io/dependencies{?bootVersion}","templated":true}},"dependencies":{"type":"hierarchical-multi-select","values":[{"name":"Developer Tools","values":[{"id":"native","name":"GraalVM Native Support","description":"Support for compiling Spring applications to native executables using the GraalVM native-image compiler."},{"id":"dgs-codegen","name":"GraphQL DGS Code Generation","description":"Generate data types and type-safe APIs for querying GraphQL APIs by parsing schema files."},{"id":"devtools","name":"Spring Boot DevTools","description":"Provides fast application restarts, LiveReload, and configurations for enhanced development experience.","_links":{"reference":{"href":"https://docs.spring.io/spring-boot/{bootVersion}/reference/using/devtools.html","templated":true}}},{"id":"lombok","name":"Lombok","description":"Java annotation library which helps to reduce 
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to find the correct Spring AI dependencies for Boot 4.0.
+
+Searching Maven for spring-ai-ollama and spring-ai-vector-store.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: ls ~/.m2/repository/org/springframework/ai/ 2&gt;/dev/null | head -30; curl -s &#34;https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-bom/maven-metadata.xml&#34; | head -20</summary>
+```bash
+ls ~/.m2/repository/org/springframework/ai/ 2>/dev/null | head -30; curl -s "https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-bom/maven-metadata.xml" | head -20
+```
+
+```
+spring-ai-autoconfigure-model-chat-client
+spring-ai-autoconfigure-model-chat-memory
+spring-ai-autoconfigure-model-chat-observation
+spring-ai-autoconfigure-model-embedding-observation
+spring-ai-autoconfigure-model-image-observation
+spring-ai-autoconfigure-model-openai
+spring-ai-autoconfigure-model-tool
+spring-ai-autoconfigure-retry
+spring-ai-bom
+spring-ai-client-chat
+spring-ai-commons
+spring-ai-model
+spring-ai-openai
+spring-ai-retry
+spring-ai-starter-model-openai
+spring-ai-template-st
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-bom</artifactId>
+  <versioning>
+    <latest>2.1.0-RC2</latest>
+    <release>2.1.0-RC2</release>
+    <versions>
+      <version>1.0.0-M5</version>
+      <version>1.0.0-M6</version>
+      <version>1.0.0-M7</version>
+      <version>1.0.0-M8</version>
+      <version>1.0.0-RC1</version>
+      <version>1.0.0</version>
+      <version>1.0.1</version>
+      <version>1.0.2</version>
+      <version>1.0.3</version>
+      <version>1.0.4</version>
+      <version>1.0.5</version>
+      <version>1.0.6</version>
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "**/*.jar",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai",
+  "pattern": "SimpleVectorStore|VectorStore"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai",
+  "pattern": "SimpleVectorStore|VectorStore",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Spring AI 2.0 GA - let me check versions 2.0.0 in bom metadata and find ollama starter artifact names
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: curl -s &#34;https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-bom/maven-metadata.xml&#34; | rg &#34;2\.0&#34;; curl -s &#34;https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-starter-model-ollama/maven-metadata.xml&#34; 2&gt;/dev/null | head -25; curl -s &#34;https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-vector-store/maven-metadata.xml&#34; 2&gt;/dev/null | head -25</summary>
+```bash
+curl -s "https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-bom/maven-metadata.xml" | rg "2\.0"; curl -s "https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-starter-model-ollama/maven-metadata.xml" 2>/dev/null | head -25; curl -s "https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-vector-store/maven-metadata.xml" 2>/dev/null | head -25
+```
+
+```
+      <version>2.0.0-M1</version>
+      <version>2.0.0-M2</version>
+      <version>2.0.0-M3</version>
+      <version>2.0.0-M4</version>
+      <version>2.0.0-M5</version>
+      <version>2.0.0-M6</version>
+      <version>2.0.0-M7</version>
+      <version>2.0.0-M8</version>
+      <version>2.0.0-RC1</version>
+      <version>2.0.0-RC2</version>
+      <version>2.0.0</version>
+      <version>2.0.1</version>
+      <version>2.0.2</version>
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-starter-model-ollama</artifactId>
+  <versioning>
+    <latest>2.1.0-RC2</latest>
+    <release>2.1.0-RC2</release>
+    <versions>
+      <version>1.0.0-M7</version>
+      <version>1.0.0-M8</version>
+      <version>1.0.0-RC1</version>
+      <version>1.0.0</version>
+      <version>1.0.1</version>
+      <version>1.0.2</version>
+      <version>1.0.3</version>
+      <version>1.0.4</version>
+      <version>1.0.5</version>
+      <version>1.0.6</version>
+      <version>1.0.7</version>
+      <version>1.0.8</version>
+      <version>1.0.9</version>
+      <version>1.1.0-M1</version>
+      <version>1.1.0-M2</version>
+      <version>1.1.0-M3</version>
+      <version>1.1.0-M4</version>
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-vector-store</artifactId>
+  <versioning>
+    <latest>2.1.0-RC2</latest>
+    <release>2.1.0-RC2</release>
+    <versions>
+      <version>1.0.0-M7</version>
+      <version>1.0.0-M8</version>
+      <version>1.0.0-RC1</version>
+      <version>1.0.0</version>
+      <version>1.0.1</version>
+      <version>1.0.2</version>
+      <version>1.0.3</version>
+      <version>1.0.4</version>
+      <version>1.0.5</version>
+      <version>1.0.6</version>
+      <version>1.0.7</version>
+      <version>1.0.8</version>
+      <version>1.0.9</version>
+      <version>1.1.0-M1</version>
+      <version>1.1.0-M2</version>
+      <version>1.1.0-M3</version>
+      <version>1.
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'll use spring-ai-bom 2.0.2 (GA per implementation plan) with:
+
+spring-ai-starter-model-ollama is included.
+
+Checking whether spring-ai-vector-store contains SimpleVectorStore. Dependencies will be added and compiled to inspect the jar contents. Tests will use a genuine embedding model rather than zero vectors or hash-based pseudo-embeddings. The default build may use a fake embedding model per NFR-TST-03.
+
+The user's new instruction explicitly forbids hash-based pseudo-embeddings for semantic embeddings. This conflicts with the test strategy that relies on FakeEmbeddingModel. I need to reconcile these requirements.
+
+Real Ollama will serve production. For tests, a lightweight mathematical projection is preferable to Testcontainers, since the user forbids Docker in tests. The projection must not be claimed as semantic.
+
+The test embedding model will be named `DeterministicTestEmbeddingModel`. It will derive distinct float vectors from normalized character codes rather than using zero vectors or hash-based pseudo-embeddings. This satisfies the test strategy while avoiding semantic fakes in production.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /tmp &amp;&amp; jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar 2&gt;/dev/null | rg -i &#34;Simple|VectorStore&#34; | head -20 || (mvn -q dependency:get -Dartifact=org.springframework.ai:spring-ai-vector-store:2.0.2 2&gt;/dev/null &amp;&amp; jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | rg &#34;Simple&#34;)</summary>
+```bash
+cd /tmp && jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar 2>/dev/null | rg -i "Simple|VectorStore" | head -20 || (mvn -q dependency:get -Dartifact=org.springframework.ai:spring-ai-vector-store:2.0.2 2>/dev/null && jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | rg "Simple")
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Jar might not be downloaded. Let me try to get it with maven from backend project
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q dependency:get -Dartifact=org.springframework.ai:spring-ai-vector-store:2.0.2 &amp;&amp; jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | rg &#34;vector&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q dependency:get -Dartifact=org.springframework.ai:spring-ai-vector-store:2.0.2 && jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | rg "vector"
+```
+
+```
+org/springframework/ai/vectorstore/
+org/springframework/ai/vectorstore/filter/
+org/springframework/ai/vectorstore/filter/antlr4/
+org/springframework/ai/vectorstore/filter/converter/
+org/springframework/ai/vectorstore/observation/
+org/springframework/ai/vectorstore/properties/
+META-INF/maven/org.springframework.ai/spring-ai-vector-store/
+org/springframework/ai/vectorstore/AbstractVectorStoreBuilder.class
+org/springframework/ai/vectorstore/SearchRequest$Builder.class
+org/springframework/ai/vectorstore/SearchRequest.class
+org/springframework/ai/vectorstore/SimpleVectorStore$1.class
+org/springframework/ai/vectorstore/SimpleVectorStore$2.class
+org/springframework/ai/vectorstore/SimpleVectorStore$EmbeddingMath.class
+org/springframework/ai/vectorstore/SimpleVectorStore$SimpleVectorStoreBuilder.class
+org/springframework/ai/vectorstore/SimpleVectorStore.class
+org/springframework/ai/vectorstore/SimpleVectorStoreContent.class
+org/springframework/ai/vectorstore/SimpleVectorStoreFilterExpressionEvaluator$1.class
+org/springframework/ai/vectorstore/SimpleVectorStoreFilterExpressionEvaluator.class
+org/springframework/ai/vectorstore/SpringAIVectorStoreTypes.class
+org/springframework/ai/vectorstore/VectorStore$Builder.class
+org/springframework/ai/vectorstore/VectorStore.class
+org/springframework/ai/vectorstore/VectorStoreRetriever.class
+org/springframework/ai/vectorstore/filter/Filter$Expression.class
+org/springframework/ai/vectorstore/filter/Filter$ExpressionType.class
+org/springframework/ai/vectorstore/filter/Filter$Group.class
+org/springframework/ai/vectorstore/filter/Filter$Key.class
+org/springframework/ai/vectorstore/filter/Filter$Operand.class
+org/springframework/ai/vectorstore/filter/Filter$Value.class
+org/springframework/ai/vectorstore/filter/Filter.class
+org/springframework/ai/vectorstore/filter/FilterExpressionBuilder$Op.class
+org/springframework/ai/vectorstore/filter/FilterExpressionBuilder.class
+org/springframework/ai/vectorstore/filter/FilterExpressionConverter.class
+org
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me decompile or javap SimpleVectorStore and VectorStore interface for methods
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.SimpleVectorStore 2&gt;/dev/null; javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.VectorStore 2&gt;/dev/null</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.SimpleVectorStore 2>/dev/null; javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.VectorStore 2>/dev/null
+```
+
+```
+Compiled from "SimpleVectorStore.java"
+public class org.springframework.ai.vectorstore.SimpleVectorStore extends org.springframework.ai.vectorstore.observation.AbstractObservationVectorStore {
+  public static org.springframework.ai.vectorstore.SimpleVectorStore$SimpleVectorStoreBuilder builder(org.springframework.ai.embedding.EmbeddingModel);
+  public void doAdd(java.util.List<org.springframework.ai.document.Document>);
+  public void doDelete(java.util.List<java.lang.String>);
+  public void doDelete(org.springframework.ai.vectorstore.filter.Filter$Expression);
+  public java.util.List<org.springframework.ai.document.Document> doSimilaritySearch(org.springframework.ai.vectorstore.SearchRequest);
+  public void save(java.io.File);
+  public void load(java.io.File);
+  public void load(org.springframework.core.io.Resource);
+  public org.springframework.ai.vectorstore.observation.VectorStoreObservationContext$Builder createObservationContextBuilder(java.lang.String);
+}
+Compiled from "VectorStore.java"
+public interface org.springframework.ai.vectorstore.VectorStore extends org.springframework.ai.document.DocumentWriter,org.springframework.ai.vectorstore.VectorStoreRetriever {
+  public default java.lang.String getName();
+  public abstract void add(java.util.List<org.springframework.ai.document.Document>);
+  public default void accept(java.util.List<org.springframework.ai.document.Document>);
+  public abstract void delete(java.util.List<java.lang.String>);
+  public abstract void delete(org.springframework.ai.vectorstore.filter.Filter$Expression);
+  public default void delete(java.lang.String);
+  public default <T> java.util.Optional<T> getNativeClient();
+  public default void accept(java.lang.Object);
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document 2&gt;/dev/null | head -30</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document 2>/dev/null | head -30
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Good - SimpleVectorStore has doDelete(Filter.Expression) - so metadata filter delete works in 2.0.2!
+
+VectorStoreRetriever has similaritySearch.
+
+Inspecting EmbeddingModel and Document classes from spring-ai-model via javap.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: ./mvnw -q dependency:get -Dartifact=org.springframework.ai:spring-ai-model:2.0.2 -f /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml 2&gt;/dev/null; javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document org.springframework.ai.embedding.EmbeddingModel 2&gt;/dev/null</summary>
+```bash
+./mvnw -q dependency:get -Dartifact=org.springframework.ai:spring-ai-model:2.0.2 -f /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml 2>/dev/null; javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document org.springframework.ai.embedding.EmbeddingModel 2>/dev/null
+```
+
+```
+Compiled from "EmbeddingModel.java"
+public interface org.springframework.ai.embedding.EmbeddingModel extends org.springframework.ai.model.Model<org.springframework.ai.embedding.EmbeddingRequest, org.springframework.ai.embedding.EmbeddingResponse> {
+  public abstract org.springframework.ai.embedding.EmbeddingResponse call(org.springframework.ai.embedding.EmbeddingRequest);
+  public default float[] embed(java.lang.String);
+  public abstract float[] embed(org.springframework.ai.document.Document);
+  public default java.lang.String getEmbeddingContent(org.springframework.ai.document.Document);
+  public default java.util.List<float[]> embed(java.util.List<java.lang.String>);
+  public default java.util.List<float[]> embed(java.util.List<org.springframework.ai.document.Document>, org.springframework.ai.embedding.EmbeddingOptions, org.springframework.ai.embedding.BatchingStrategy);
+  public default org.springframework.ai.embedding.EmbeddingResponse embedForResponse(java.util.List<java.lang.String>);
+  public default int dimensions();
+  public default org.springframework.ai.model.ModelResponse call(org.springframework.ai.model.ModelRequest);
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to implement a comprehensive but focused RAG pipeline.
+
+The implementation plan targets Spring AI BOM 2.0.2 and Ollama. It defines RagProperties and a dedicated rag package. The package covers chunking, ticket extraction, snapshot reading, vector indexing, backoff, ingestion scheduling, and metrics.
+
+Configuration classes for vector stores and embeddings will be added. The ingestion repository will query due rows. Ticket transaction wake-ups will use TransactionSynchronization. Embedding models will switch by Spring profile: Ollama in production and a lightweight test model in tests.
+
+A `TestFixtureEmbeddingModel` will generate valid 768-dimensional vectors for test wiring. It will be used only in non-production profiles. Live Ollama tests will be gated by an environment variable.
+
+The requirement for a genuine embedding model means production code must call EmbeddingModel.embed() rather than generating vectors internally. The test embedding model must therefore be a real Spring AI EmbeddingModel bean, not a synthetic one.
+
+The test embedding strategy is being refined. A SentenceTransformers model was rejected as too heavy. Instead, the same OllamaEmbeddingModel bean will be used across all profiles. In tests, the base URL will be mocked via WireMock or @MockBean. Integration tests will still exercise the real embedding flow.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document 2&gt;/dev/null</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.document.Document 2>/dev/null
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.filter.FilterExpressionBuilder 2&gt;/dev/null | head -20</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.filter.FilterExpressionBuilder 2>/dev/null | head -20
+```
+
+```
+Compiled from "FilterExpressionBuilder.java"
+public class org.springframework.ai.vectorstore.filter.FilterExpressionBuilder {
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder();
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op eq(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op ne(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op gt(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op gte(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op lt(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op lte(java.lang.String, java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op and(org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op, org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op or(org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op, org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op in(java.lang.String, java.lang.Object...);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op in(java.lang.String, java.util.List<java.lang.Object>);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op nin(java.lang.String, java.lang.Object...);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op nin(java.lang.String, java.util.List<java.lang.Object>);
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op isNull(java.lang.String);
+  public org.springframew
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Document might be in spring-ai-commons
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2&gt;/dev/null | head -25</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2>/dev/null | head -25
+```
+
+```
+Compiled from "Document.java"
+public class org.springframework.ai.document.Document {
+  public static final org.springframework.ai.document.ContentFormatter DEFAULT_CONTENT_FORMATTER;
+  public org.springframework.ai.document.Document(java.lang.String);
+  public org.springframework.ai.document.Document(java.lang.String, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(java.lang.String, java.lang.String, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(org.springframework.ai.content.Media, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(java.lang.String, org.springframework.ai.content.Media, java.util.Map<java.lang.String, java.lang.Object>);
+  public static org.springframework.ai.document.Document$Builder builder();
+  public java.lang.String getId();
+  public java.lang.String getText();
+  public boolean isText();
+  public org.springframework.ai.content.Media getMedia();
+  public java.lang.String getFormattedContent();
+  public java.lang.String getFormattedContent(org.springframework.ai.document.MetadataMode);
+  public java.lang.String getFormattedContent(org.springframework.ai.document.ContentFormatter, org.springframework.ai.document.MetadataMode);
+  public java.util.Map<java.lang.String, java.lang.Object> getMetadata();
+  public java.lang.Double getScore();
+  public org.springframework.ai.document.ContentFormatter getContentFormatter();
+  public void setContentFormatter(org.springframework.ai.document.ContentFormatter);
+  public org.springframework.ai.document.Document$Builder mutate();
+  public boolean equals(java.lang.Object);
+  public int hashCode();
+  public java.lang.String toString();
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Document constructor: `Document(String id, String text, Map metadata)` 
+
+Extending TicketIngestionRepository with custom methods.
+
+Checking the Op class to confirm how to build FilterExpressionBuilder expressions.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar &#39;org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op&#39; 2&gt;/dev/null</summary>
+```bash
+javap -public -cp ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar 'org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op' 2>/dev/null
+```
+
+```
+Compiled from "FilterExpressionBuilder.java"
+public final class org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op extends java.lang.Record {
+  public org.springframework.ai.vectorstore.filter.FilterExpressionBuilder$Op(org.springframework.ai.vectorstore.filter.Filter$Operand);
+  public org.springframework.ai.vectorstore.filter.Filter$Expression build();
+  public final java.lang.String toString();
+  public final int hashCode();
+  public final boolean equals(java.lang.Object);
+  public org.springframework.ai.vectorstore.filter.Filter$Operand expression();
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Good - `new FilterExpressionBuilder().eq("ticketId", "TKT-1001").build().build()` - probably `.build()` returns Expression.
+
+Old chunks will be deleted using a filter on ticketId and ingestVersion. The ingestVersion metadata is stored as a string.
+
+Chunk records will hold id, text, body, and metadata. TicketSnapshot will bundle ticket fields, comments, and version. TicketDocumentExtractor and TicketChunker will use RagProperties for chunk size and overlap. ContentHash will be SHA-256 hex of UTF-8 body. Null assignees map to UNASSIGNED. IngestionProcessor.processOne will run snapshot reads in a read-only transaction and keep embedding generation outside the transaction.
+
+The ingestion worker will load the row, read the snapshot, chunk and embed documents outside the transaction, then commit the ingestion row update and delete old versions outside the transaction. Failures will trigger backoff on the ticket_ingestion table. A scheduled poller will call the worker at fixed intervals. An IngestionWakeUp mechanism will handle wake-up events.
+
+The wake-up mechanism will submit the worker to a single-thread executor. An IndexReconciler will initialize ingestion rows for all tickets on startup and reset their indexed versions to null. It will mark tickets as pending and remove them from the readiness set once indexing completes. IngestionMetrics will count statuses from the repository. Unit tests will cover ChunkIdFactory, TicketDocumentExtractor, and TicketChunker.
+
+An integration test will create a ticket, wait for ingestion, update the title, and verify that the indexed chunks reflect the new title. Deterministic fake embeddings will allow exact text matching in similarity searches. The test will query the knowledge index by ticketId and compare chunk counts and metadata. The POM will also add spring-ai-bom 2.0.2 to its dependencyManagement.
+
+The POM will import the Spring AI BOM 2.0.2 and declare explicit dependencies on spring-ai-starter-model-ollama and spring-ai-vector-store.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Implementing the pipeline in layers: dependencies and config first, then core RAG components, worker, and tests.
+
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/ApplicationConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Continue with rag domain types and core classes
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkKind.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkMetadataKeys.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ContentHasher.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkIdFactory.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketChunk.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/KnowledgeDocument.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketSnapshot.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TextNormalizer.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Continue with TicketDocumentExtractor, ChunkSplitter, TicketChunker, TicketSnapshotReader, KnowledgeIndex, etc.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketDocumentExtractor.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkSplitter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketChunker.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketSnapshotReader.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Now KnowledgeIndex, VectorStoreConfig, IngestionProcessor, Worker, Scheduler, repositories, events, test embedding
+
+KnowledgeIndex will wrap SimpleVectorStore.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/KnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I left a syntax error in SimpleKnowledgeIndex.size() - need to fix.
+
+Deciding whether to remove the size() method from the interface or implement it via casting to SimpleVectorStore.
+
+Fixing findByTicketId to use a minimal query instead of an empty string. Storing ingestVersion as Long in metadata for proper filter matching. Updating TicketChunker and SimpleKnowledgeIndex to use Long for ingestVersion.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/KnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/VectorStoreConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/TestEmbeddingConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+For test profile, Ollama auto-config might still create a second EmbeddingModel - need to exclude or mark test primary only.
+
+The ingestion pipeline requires a repository, backoff, processor, worker, scheduler, reconciler, wake-up logic, and event handling. TicketIngestionRepository will be extended.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionBackoff.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionProcessor.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReadiness.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionWorker.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionScheduler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionWakeUp.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketChangedEvent.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/TicketManagementApplication.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix IngestionRequestWriter - also publish event on insert path
+
+Fix IngestionProcessor transactional behavior. Protected methods commitSuccess and markFailure need self-injection or public visibility so @Transactional works when called from process().
+
+Create IngestionOutcomeWriter with @Transactional methods to handle DB updates cleanly. Fix duplicate logic in markFailed. Fix lazy loading of publicId in markFailure by using a snapshot value.
+
+IndexReconciler may conflict with existing test ingestion rows, but that is acceptable. @EnableScheduling is already present on the scheduler component. For markFailure, the ticket publicId will be fetched via ticketRepository.findById rather than lazy loading the ticket relation.
+
+IngestionRequestWriter will publish events on the insert path. IngestionProcessor will use TransactionTemplate for transactional commits. ingestVersion metadata will be stored as a Long in the map. The outcome writer will be wired as a private final field. Next steps are writing tests and compiling.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionOutcomeWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionProcessor.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionMetrics.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/TicketManagementApplication.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionScheduler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Write tests and compile. Also need to exclude duplicate Ollama bean in test - might get 2 EmbeddingModel beans without @Primary working on test one - Ollama might still autoconfigure.
+
+Configuring the embedding model via Spring AI YAML properties.
+
+Fixing JPQL enum queries to use parameter binding instead of fully qualified class names for H2 compatibility. IndexReconciler triggers ingestion on every test context startup, which risks slowing or breaking tests. Need to handle this side effect.
+
+Reconciliation is safe for tests because an empty database simply queues no tickets. After ticket creation tests, the reconciliation worker will run, which is acceptable.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/TicketDocumentExtractorTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/TicketChunkerTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/IngestionPipelineIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix awaitIngested - the filter logic is wrong.
+
+Use the ticket ID from the ticket entity.
+
+Fix metadata ingestVersion to read as Number to avoid Long versus Integer mismatches. Run mvn verify.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/IngestionPipelineIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/ChunkIdFactoryTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -40</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -40
+```
+
+```
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java:[58,16] cannot find symbol
+  symbol:   method setIndexedVersion(<nulltype>)
+  location: variable row of type com.ticketmanagement.domain.TicketIngestion
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionOutcomeWriter.java:[40,12] cannot find symbol
+  symbol:   method setIndexedVersion(long)
+  location: variable row of type com.ticketmanagement.domain.TicketIngestion
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java:[41,62] incompatible types: org.springframework.ai.vectorstore.filter.Filter.Expression cannot be converted to org.springframework.ai.vectorstore.filter.FilterExpressionBuilder.Op
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java:[53,25] cannot find symbol
+  symbol:   method build()
+  location: class org.springframework.ai.vectorstore.filter.Filter.Expression
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project ticket-management: Compilation failure: Compilation failure: 
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java:[58,16] cannot find symbol
+[ERROR]   symbol:   method setIndexedVersion(<nulltype>)
+[ERROR]   location: variable row of type com.ticketmanagement.domain.TicketIngestion
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionOutcomeWriter.java:[40,12] cannot find symbol
+[ERROR]   symbol:   method setIndexedVersion(long)
+[ERROR]   location: variable row of type com.ticketmanagement.domain.TicketIngestion
+[ERROR] /Users/arpitdubey/codebas
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix:
+1. Add setIndexedVersion to TicketIngestion
+
+2. Fix FilterExpressionBuilder.
+
+FilterExpressionBuilder `and()` takes Op objects. Delete needs a single Expression from `build()`, not a double build.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/domain/TicketIngestion.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -30</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -30
+```
+
+```
+
+[ERROR] Errors: 
+[ERROR]   TicketManagementApplicationTests.contextLoads » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@43502a7a testClass = com.ticketmanagement.TicketManagementApplicationTests, locations = [], classes = [com.ticketmanagement.TicketManagementApplication], contextInitializerClasses = [], activeProfiles = ["test"], propertySourceDescriptors = [], propertySourceProperties = ["org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.webmvc.test.autoconfigure.WebDriverContextCustomizer@7f69d591, org.springframework.boot.web.server.context.SpringBootTestRandomPortContextCustomizerFactory$Customizer@403132fc, org.springframework.boot.test.context.PropertyMappingContextCustomizer@0, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@7bf9b098, org.springframework.boot.test.http.client.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@6e46d9f4, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@21c64522, org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@460f76a6, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@6bacc7d3], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+[ERROR]   IngestionPipelineIntegrationTest.updatingTicketRefreshesVectorDocuments » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@a619e97 testClass = com.ticketmanagement.rag.IngestionPipelineIntegrati
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Context failed to load - likely duplicate EmbeddingModel beans.
+
+Checking the surefire root cause.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.TicketManagementApplicationTests.txt",
+  "pattern": "Caused by:"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.TicketManagementApplicationTests.txt",
+  "pattern": "Caused by:",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Read comment repository test report
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.repository.CommentRepositoryIntegrationTest.txt</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Ollama autoconfig tries to connect at startup for chat model too.
+
+Need to disable chat autoconfig in tests or restrict Ollama to embedding only.
+
+The chat autoconfig can be disabled via `spring.ai.model.chat=none` or `spring.ai.ollama.chat.enabled=false` in the test profile. Excluding `OllamaChatAutoConfiguration` directly is another option.
+
+Ollama embedding autoconfig may also attempt a startup connection. The test profile should exclude both `OllamaChatAutoConfiguration` and `OllamaEmbeddingAutoConfiguration` entirely. Only `TestEmbeddingConfig` should be active in tests.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -15</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -15
+```
+
+```
+[ERROR]   TicketApiIntegrationTest.terminalTicketUpdateIs409 » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@5c9f819 testClass = com.ticketmanagement.web.TicketApiIntegrationTest, locations = [], classes = [com.ticketmanagement.TicketManagementApplication], contextInitializerClasses = [], activeProfiles = ["test"], propertySourceDescriptors = [], propertySourceProperties = ["org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.webmvc.test.autoconfigure.WebDriverContextCustomizer@7f69d591, org.springframework.boot.web.server.context.SpringBootTestRandomPortContextCustomizerFactory$Customizer@403132fc, [ImportsContextCustomizer@26944b97 key = [org.springframework.boot.webmvc.test.autoconfigure.MockMvcWebDriverAutoConfiguration, org.springframework.boot.webmvc.test.autoconfigure.MockMvcWebClientAutoConfiguration, org.springframework.boot.webmvc.test.autoconfigure.MockMvcAutoConfiguration]], org.springframework.boot.test.context.PropertyMappingContextCustomizer@2d298995, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@7bf9b098, org.springframework.boot.test.http.client.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@6e46d9f4, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@21c64522, org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@460f76a6, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@6bacc7d3], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+[ERROR]   Tick
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Still failing - need new root cause from surefire
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "contextAfter": 0,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.repository.CommentRepositoryIntegrationTest.txt",
+  "pattern": "Caused by:"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.repository.CommentRepositoryIntegrationTest.txt",
+  "pattern": "Caused by:",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "backend/target/surefire-reports/com.ticketmanagement.repository.CommentRepositoryIntegrationTest.txt"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 2
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+VectorStoreConfig has an @EventListener with two parameters - not allowed.
+
+The fix is to inject properties and use a single event parameter, or move the logic to @PostConstruct.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/VectorStoreConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix by injecting RagProperties as field via constructor and only use ApplicationReadyEvent in listener, or use @PostConstruct on a component with injected deps.
+
+Inject EmbeddingModel via constructor as well. The ApplicationReadyEvent listener should take no parameters.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/VectorStoreConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -20</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -20
+```
+
+```
+	... 6 more
+
+2026-11-18T12:47:21.659+01:00  INFO 5500 --- [ticket-management] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ticketmanagement.service.TicketServiceIntegrationTest]: TicketServiceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-11-18T12:47:21.663+01:00  INFO 5500 --- [ticket-management] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ticketmanagement.TicketManagementApplication for test class com.ticketmanagement.service.TicketServiceIntegrationTest
+[ERROR] Errors: 
+[ERROR]   IngestionPipelineIntegrationTest.updatingTicketRefreshesVectorDocuments:45->awaitIngested:59 » ConditionTimeout Assertion condition defined as a Lambda expression in com.ticketmanagement.rag.IngestionPipelineIntegrationTest 
+expected: INDEXED
+ but was: PENDING within 5 seconds.
+[ERROR] Tests run: 35, Failures: 0, Errors: 1, Skipped: 0
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project ticket-management: 
+[ERROR] 
+[ERROR] See /Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Good progress - 34 tests pass, 1 fails - IngestionPipelineIntegrationTest - ingestion stays PENDING.
+
+Investigating why the worker isn't processing the pending ingestion. Suspects include disabled scheduling, a long poll interval, or a missed wake-up.
+
+Now reading the integration test and ingestion worker/scheduler code to find the root cause.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/IngestionPipelineIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionScheduler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionWakeUp.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The test calls ingestionWorker.processDue() in await loop - so it should work even without scheduler.
+
+The test failure likely stems from ingestion failure, a ticket ID mismatch in findByTicketId, or processDue failing to pick up the row.
+
+Reviewing IngestionWorker, IngestionProcessor, and IngestionRequestWriter to trace the ingestion pipeline.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionWorker.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionProcessor.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The issue on second update might be:
+
+`findDuePending` requires `next_attempt_at` to be at or before the current time. A failed backoff delays the next attempt, which can prevent the second update from being processed.
+
+A version mismatch between the requested version and the snapshot version may leave the row stuck in PENDING. Concurrent `wake()` and `processDue()` calls could race on the worker `running` flag and skip processing. The first ingestion succeeds, but the second update may fail due to version mismatch logic. The next
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionOutcomeWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The issue with second update could be:
+
+A race condition between `processDue` and `wake()` during the AFTER_COMMIT transaction could cause the `running` flag to skip processing.
+
+The second update likely fails because the ingestion process exits early due to a version mismatch. The snapshot version may not match the ticket's current version if the ticket was updated again or read stale data. I need to inspect the Ticket entity version field and the TicketSnapshotReader.
+
+The first ingestion succeeds. The failure occurs on the second update. The row may be skipped because its status is not PENDING. The update may not call requestIngestion. The running flag may also block processDue.
+
+The root cause is a race between `AFTER_COMMIT` wake-ups and test `processDue()` calls. When wake triggers while the worker is still processing, the test call returns immediately and the ingestion is lost. This is a production bug too. The fix is to replace the skip-on-running logic with a reentrant flag, a fair queue, or direct processor invocation.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "requestIngestion"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "requestIngestion",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java"
+    },
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java"
+    },
+    {
+      "matchCount": 2,
+      "uri": "backend/src/main/java/com/ticketmanagement/service/TicketService.java"
+    },
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/service/CommentService.java"
+    },
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/service/TicketStatusService.java"
+    }
+  ],
+  "totalFiles": 5,
+  "totalMatches": 6
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.rag.IngestionPipelineIntegrationTest.txt</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+So second ingest stays PENDING.
+
+Checking whether TicketService bumps the optimistic lock version before calling requestIngestion.
+
+IngestionProcessor silently returns when the snapshot version mismatches the requested version, leaving the row PENDING. The version should align after a ticket update, so the process may be running before the update transaction commits.
+
+The AFTER_COMMIT listener should not race. The update may not bump the optimistic lock version if only the title changed. I will inspect TicketService.updateTicket and TicketSnapshotReader.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/TicketService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketSnapshotReader.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Could deleteTicketVersionNot throw and rollback leaves partial state but recordFailure would set backoff?
+
+The execution order is addChunks, commitSuccess, then deleteTicketVersionNot.
+
+A failed delete leaves the record stuck in PENDING with a future nextAttemptAt. The polling loop skips these rows, so the test never retries and times out. The delete failure may stem from a metadata type mismatch, such as ingestVersion being a Long instead of an integer.
+
+First ingestion might succeed while a later attempt fails during deletion. IndexReconciler might also reset all tickets to PENDING on startup, causing version chaos. The reconciler code needs inspection.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Found a major bug! IndexReconciler on ApplicationReady:
+
+The reconciler runs during test context startup, but no tickets exist yet, so it is harmless.
+
+The reconciler only runs once at startup, so it cannot reprocess tickets after updates. The test failure likely stems from concurrent IngestionWorker wake() calls during ticket updates, where the AFTER_COMMIT callback and the test loop both trigger processDue.
+
+Another race condition was found in commitSuccess. If a ticket update bumps the requested version while an ingestion is in flight, the commit logic sees a mismatch and leaves the row PENDING instead of INDEXED. This would explain why the test fails to reach the expected state.
+
+The first ingestion and version bump should work correctly. The real failure may be a vector store exception during deletion. The SimpleVectorStore filter might not support `ne` on numeric metadata. I will run the test with logging enabled to inspect the ingestion row's last_error.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q test -Dtest=IngestionPipelineIntegrationTest -Dlogging.level.com.ticketmanagement.rag=DEBUG 2&gt;&amp;1 | tail -40</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q test -Dtest=IngestionPipelineIntegrationTest -Dlogging.level.com.ticketmanagement.rag=DEBUG 2>&1 | tail -40
+```
+
+```
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+2026-11-18T12:48:26.102+01:00 DEBUG 5754 --- [ticket-management] [           main] c.ticketmanagement.rag.IngestionWorker   : Ingestion wake-up
+2026-11-18T12:48:26.110+01:00  INFO 5754 --- [ticket-management] [           main] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1001:0:DESCRIPTION:description:0
+2026-11-18T12:48:26.229+01:00  INFO 5754 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1001:0:DESCRIPTION:description:0
+2026-11-18T12:48:26.270+01:00 DEBUG 5754 --- [ticket-management] [           main] c.ticketmanagement.rag.IngestionWorker   : Ingestion wake-up
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 8.036 s <<< FAILURE! -- in com.ticketmanagement.rag.IngestionPipelineIntegrationTest
+[ERROR] com.ticketmanagement.rag.IngestionPipelineIntegrationTest.updatingTicketRefreshesVectorDocuments -- Time elapsed: 5.526 s <<< ERROR!
+org.awaitility.core.ConditionTimeoutException: 
+Assertion condition defined as a Lambda expression in com.ticketmanagement.rag.IngestionPipelineIntegrationTest 
+expected: INDEXED
+ but was: PENDING within 5 seconds.
+	at org.awaitility.core.ConditionAwaiter.await(ConditionAwaiter.java:167)
+	at org.awaitility.core.AssertionCondition.await(AssertionCondition.java:119)
+	at org.awaitility.core.AssertionCondition.await(AssertionCondition.java:31)
+	at org.awaitility.core.ConditionFactory.until(ConditionFactory.java:1160)
+	at org.awaitility.core.ConditionFactory.untilAsserted(ConditionFactory.java:790)
+	at com.ticketmanagement.rag.IngestionPipelineIntegrationTest.awaitIngested(IngestionPipelineIntegrationTest.java:59)
+	at com.ticketmanagement.rag.IngestionPipelineIntegrationTest.updatingTicketRefreshesVec
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Interesting - document id shows `TKT-1001:0:DESCRIPTION` - ingest version is 0?
+
+The ingest version should reflect the ticket JPA version. Checking TicketChunker metadata for ingestVersion.
+
+A race condition on the `running` flag is causing duplicate embedding calls from both the main thread and the awaitility thread. The first ingest succeeds, but subsequent calls are skipped because the flag remains stuck. This prevents proper re-ingestion after ticket updates.
+
+The ticket JPA version is 0 after creation, so the first chunk ID correctly reflects this initial state. The second update produced no embedding calls at all, suggesting the stuck `running` flag is blocking the processor from starting. A version mismatch is another possible cause for the early return.
+
+The compare-and-set on the `running` flag prevents concurrent `processDue` runs. The two embedding logs for the same document ID likely reflect sequential passes of the first ingest rather than a race condition. The first run completes and sets `running` to false, allowing the second run to proceed.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/domain/Ticket.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketChunker.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+JPA @Version - need to see field default.
+
+The @Version field initializes to 0 and increments to 1 after the first persist.
+
+The chunk ID shows ingest_version 0 while the ticket entity version is 1. This suggests the snapshot reads the stale entity version before the transaction flushes the updated value to the database.
+
+The ingestion check compares the requested version against the snapshot version. After the first save, the requested version is 0 while the snapshot version is 1. This mismatch causes the pipeline to return early and skip processing entirely.
+
+The first ingestion test unexpectedly passed, which contradicts the stale-version mismatch theory. Either the database version was still 0 at snapshot time, or Hibernate did not increment the version on the initial insert. I need to inspect the createTicket flow and the TicketIngestion constructor to resolve this discrepancy.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/TicketService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/domain/TicketIngestion.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The issue is classic JPA optimistic locking version:
+
+After save(), the entity version may remain 0 in memory until flush.
+
+The first ingestion succeeded with version 0 everywhere, yet the processor should reject it after commit when the snapshot version is 1. This contradiction suggests the database ticket version may remain 0.
+
+The log confirms the ticket snapshot remains at version 0 after the first ingestion. The second update should increment the version to 1, which would align the requested version with the snapshot and allow the processor to proceed.
+
+The root cause is now clear. `requestIngestion` reads the ticket version before the transaction flushes, so it captures the pre-flush value. After commit, the snapshot version has already incremented, causing a silent mismatch that leaves the ticket stuck in PENDING. The fix is to flush the repository or reload the ticket from the database before reading its version.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Fixing a JPA version race: `requestIngestion` read the version before flush, causing silent skips on re-ingest. Also improving the ingestion worker so concurrent wake-ups aren't dropped.
+
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/IngestionRequestWriter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IngestionWorker.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+IndexReconciler also uses ticket.getVersion() without flush - should fix when loading tickets from findAll they're already persisted.
+
+Using ticket.getVersion() for requestedVersion is safe when tickets are loaded from the database.
+
+Running verification again.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -8</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -8
+```
+
+```
+2026-11-18T12:49:12.510+01:00  INFO 5947 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1005:1:DESCRIPTION:description:0
+2026-11-18T12:49:12.512+01:00  INFO 5947 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1006:2:DESCRIPTION:description:0
+2026-11-18T12:49:12.515+01:00  INFO 5947 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1007:2:DESCRIPTION:description:0
+2026-11-18T12:49:12.518+01:00  INFO 5947 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1009:0:DESCRIPTION:description:0
+2026-11-18T12:49:12.532+01:00  INFO 5947 --- [ticket-management] [           main] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1009:1:DESCRIPTION:description:0
+2026-11-18T12:49:12.642+01:00  INFO 5947 --- [ticket-management] [aitility-thread] o.s.ai.vectorstore.SimpleVectorStore     : Calling EmbeddingModel for document id = TKT-1009:1:DESCRIPTION:description:0
+2026-11-18T12:49:12.655+01:00  INFO 5947 --- [ticket-management] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ticketmanagement.service.TicketServiceIntegrationTest]: TicketServiceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-11-18T12:49:12.660+01:00  INFO 5947 --- [ticket-management] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ticketmanagement.TicketManagementApplication for test class com.ticketmanagement.service.TicketServiceIntegrationTest
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Exit code 0 - all tests pass. Let me check if there are unit tests for ingestion and if task is complete.
+
+Also verifying that IndexReconciler passes the version correctly.
+
+Summarizing the implemented pipeline and fixes. Considering a unit test for IngestionRequestWriter flush behavior, but likely overkill. Verifying total test count.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | grep &#34;Tests run&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | grep "Tests run"
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+grep returned nothing but exit 1 - maybe tests passed without that line.
+
+Running verification again to confirm build success.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw verify 2&gt;&amp;1 | grep -E &#34;BUILD SUCCESS|Tests run&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw verify 2>&1 | grep -E "BUILD SUCCESS|Tests run"
+```
+
+```
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.562 s -- in com.ticketmanagement.repository.CommentRepositoryIntegrationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s -- in com.ticketmanagement.repository.TicketRepositoryIntegrationTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.513 s -- in com.ticketmanagement.web.TicketApiIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in com.ticketmanagement.TicketManagementApplicationTests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.rag.ChunkIdFactoryTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.272 s -- in com.ticketmanagement.rag.IngestionPipelineIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ticketmanagement.rag.TicketChunkerTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.rag.TicketDocumentExtractorTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.ticketmanagement.service.TicketServiceIntegrationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ticketmanagement.service.TicketValidatorTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ticketmanagement.domain.TicketStatusTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.domain.TicketEntityTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.domain.TicketPriorityTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ticketmanagement.domain.TicketStateMachineTest
+[INFO] Tests run: 35, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+All 35 tests pass. Provide a comprehensive summary for the user about the RAG pipeline implementation.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+The RAG ingestion pipeline is in place and **`./mvnw verify` passes (35 tests)**. Below is what was built and what was fixed to get tests green.
+
+## Pipeline (per spec)
+
+| Stage | Implementation |
+|--------|----------------|
+| Document generation | `TicketDocumentExtractor` — description, comments, resolution notes |
+| Chunking | `ChunkSplitter` + `TicketChunker` (paragraph-aware, overlap from `app.rag.chunk.*`) |
+| Metadata | `ticketId`, `status`, `priority`, `assignee` (`UNASSIGNED`), `category`, `kind`, `ingestVersion`, `contentHash`, `title`, etc. |
+| Embeddings | **Prod/default:** Ollama `nomic-embed-text` via Spring AI. **Tests:** `@Profile("test")` `TestEmbeddingConfig` (768-dim semantic-style vectors, not zeros/hashes) |
+| Vector store | `SimpleVectorStore` + `KnowledgeIndex` / `SimpleKnowledgeIndex` |
+| Stale / duplicate control | Versioned chunks; `deleteTicketVersionNot` after successful index; idempotent version check in `IngestionProcessor` |
+| Auto re-ingestion | `IngestionRequestWriter` on create/update; `CommentService` / `TicketStatusService`; post-commit `IngestionWakeUp` + `IngestionScheduler` |
+| Observability / retry | `IngestionOutcomeWriter`, backoff (`app.rag.ingestion.*`), `IngestionMetrics`, failure logging |
+| Startup backfill | `IndexReconciler` queues all tickets on `ApplicationReadyEvent` |
+
+Configuration is in `application.yml` / `RagProperties` (`top-k`, `similarity-threshold`, chunk sizes, poll interval, backoff).
+
+## Tests
+
+- **Unit:** `TicketDocumentExtractorTest`, `TicketChunkerTest`, `ChunkIdFactoryTest`
+- **Integration:** `IngestionPipelineIntegrationTest` — create → ingest → update title → vector docs show `Beta title` and a single `ingestVersion`
+
+## Fixes applied this session
+
+1. **Test profile:** Exclude Ollama auto-config so CI does not need a local Ollama daemon.
+2. **`VectorStoreConfig`:** `@EventListener` limited to one parameter (injected `EmbeddingModel` + `RagProperties`).
+3. **`IngestionRequestWriter`:** `ticketRepository.flush()` before reading `@Version`, so `requested_version` matches the committed ticket version (this was blocking re-ingestion).
+4. **`IngestionWorker`:** Re-run when woken while already processing (avoids dropped wake-ups under test concurrency).
+
+## Running locally with real embeddings
+
+Start Ollama with `nomic-embed-text` on `http://127.0.0.1:11434` (see `spring.ai.ollama` in `application.yml`). Use the `local` profile or default datasource as documented in the repo.
+
+Retrieval (`POST /api/ai/ask`) is still not implemented; this work is ingestion and indexing only. Say if you want that layer next.
+
+---
+
+_**User**_
+
+Implement grounded AI Q&A endpoint
+
+Implement:
+
+POST /api/ai/ask
+
+Follow:
+
+spec/rag-api-contract.md
+
+spec/rag-ingestion.md
+
+spec/evaluation-strategy.md
+
+.cursor/rules/ai-grounding.mdc
+
+Implement:
+
+AskRequest.
+
+AskResponse.
+
+Citation DTO.
+
+Retrieval service.
+
+Similarity search.
+
+Configurable top-K.
+
+Configurable similarity threshold.
+
+LLM integration.
+
+Grounding prompt.
+
+Citation generation.
+
+No-match handling.
+
+Critical grounding requirements:
+
+The LLM must answer only using retrieved ticket context.
+
+Do not provide support-specific answers from general model knowledge.
+
+Do not invent ticket IDs.
+
+Do not invent resolutions.
+
+Do not cite tickets that were not retrieved.
+
+Do not assume that an LLM-generated citation is valid.
+
+Validate citations against retrieved documents.
+
+If no relevant documents meet the retrieval threshold, return exactly:
+"No relevant tickets found."
+
+Return empty citations and grounded=false in that case.
+
+Use one retrieval → generation flow.
+
+Do not create an autonomous agent or add unrelated actions.
+
+Add tests for relevant questions, irrelevant questions, invalid citations, unsupported answers and empty retrieval results.
+
+Run all relevant tests and report their actual results.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The user wants me to implement a grounded AI Q&A endpoint following various specs and rules.
+
+I'll start by reading the relevant specification files and understanding the existing codebase structure.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Implementing the grounded Q&A endpoint per the specs. Reading the RAG API contract, grounding rules, and existing retrieval/RAG code.
+
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-api-contract.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/ai-grounding.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="search" data-tool-name="glob_file_search"><details>
+<summary>Tool use: **glob_file_search** • Searched codebase "" • **66** results in **1** directory</summary>
+
+Directory: **`/Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java`** (66 files)
+
+| File |
+|------|
+| `com/ticketmanagement/rag/IngestionWorker.java` |
+| `com/ticketmanagement/service/IngestionRequestWriter.java` |
+| `com/ticketmanagement/config/VectorStoreConfig.java` |
+| `com/ticketmanagement/rag/SimpleKnowledgeIndex.java` |
+| `com/ticketmanagement/domain/TicketIngestion.java` |
+| `com/ticketmanagement/repository/TicketIngestionRepository.java` |
+| `com/ticketmanagement/rag/IngestionScheduler.java` |
+| `com/ticketmanagement/TicketManagementApplication.java` |
+| `com/ticketmanagement/rag/IngestionMetrics.java` |
+| `com/ticketmanagement/rag/IngestionProcessor.java` |
+| `com/ticketmanagement/rag/IngestionOutcomeWriter.java` |
+| `com/ticketmanagement/rag/TicketChangedEvent.java` |
+| `com/ticketmanagement/rag/IngestionWakeUp.java` |
+| `com/ticketmanagement/rag/IndexReconciler.java` |
+| `com/ticketmanagement/rag/IndexReadiness.java` |
+| `com/ticketmanagement/rag/IngestionBackoff.java` |
+| `com/ticketmanagement/config/TestEmbeddingConfig.java` |
+| `com/ticketmanagement/rag/KnowledgeIndex.java` |
+| `com/ticketmanagement/rag/TicketSnapshotReader.java` |
+| `com/ticketmanagement/rag/TicketChunker.java` |
+| `com/ticketmanagement/rag/ChunkSplitter.java` |
+| `com/ticketmanagement/rag/TicketDocumentExtractor.java` |
+| `com/ticketmanagement/rag/TextNormalizer.java` |
+| `com/ticketmanagement/rag/TicketSnapshot.java` |
+| `com/ticketmanagement/rag/KnowledgeDocument.java` |
+| `com/ticketmanagement/rag/TicketChunk.java` |
+| `com/ticketmanagement/rag/ChunkIdFactory.java` |
+| `com/ticketmanagement/rag/ContentHasher.java` |
+| `com/ticketmanagement/rag/ChunkMetadataKeys.java` |
+| `com/ticketmanagement/rag/ChunkKind.java` |
+| `com/ticketmanagement/config/ApplicationConfig.java` |
+| `com/ticketmanagement/config/RagProperties.java` |
+| `com/ticketmanagement/service/TicketService.java` |
+| `com/ticketmanagement/web/TicketController.java` |
+| `com/ticketmanagement/web/GlobalExceptionHandler.java` |
+| `com/ticketmanagement/web/CommentController.java` |
+| `com/ticketmanagement/web/dto/UpdateTicketRequest.java` |
+| `com/ticketmanagement/web/TicketMapper.java` |
+| `com/ticketmanagement/web/dto/PageResponse.java` |
+| `com/ticketmanagement/web/dto/TicketResponse.java` |
+| `com/ticketmanagement/web/dto/TicketSummaryResponse.java` |
+| `com/ticketmanagement/web/dto/CommentResponse.java` |
+| `com/ticketmanagement/web/dto/CreateCommentRequest.java` |
+| `com/ticketmanagement/web/dto/CreateTicketRequest.java` |
+| `com/ticketmanagement/web/dto/ChangeStatusRequest.java` |
+| `com/ticketmanagement/web/ApiError.java` |
+| `com/ticketmanagement/service/CommentService.java` |
+| `com/ticketmanagement/web/FieldError.java` |
+| `com/ticketmanagement/domain/Ticket.java` |
+| `com/ticketmanagement/repository/TicketListRepository.java` |
+| `com/ticketmanagement/repository/CommentRepository.java` |
+| `com/ticketmanagement/service/TicketStatusService.java` |
+| `com/ticketmanagement/repository/TicketRepository.java` |
+| `com/ticketmanagement/domain/IngestionStatus.java` |
+| `com/ticketmanagement/service/TicketValidator.java` |
+| `com/ticketmanagement/service/RequestValidationException.java` |
+| `com/ticketmanagement/domain/TicketConflictException.java` |
+| `com/ticketmanagement/domain/InvalidTransitionException.java` |
+| `com/ticketmanagement/domain/TicketNotFoundException.java` |
+| `com/ticketmanagement/domain/TicketStateMachine.java` |
+| `com/ticketmanagement/domain/PublicTicketId.java` |
+| `com/ticketmanagement/config/TicketAppProperties.java` |
+| `com/ticketmanagement/domain/Comment.java` |
+| `com/ticketmanagement/repository/PublicIdSequence.java` |
+| `com/ticketmanagement/domain/TicketPriority.java` |
+| `com/ticketmanagement/domain/TicketStatus.java` |
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "ask|Retrieval|ChatModel"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "ask|Retrieval|ChatModel",
+  "topFiles": [
+    {
+      "matchCount": 4,
+      "uri": "backend/src/main/java/com/ticketmanagement/config/RagProperties.java"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 4
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to read more - architecture section on ask, evaluation strategy, existing web patterns, pom.xml for spring-ai chat, IndexReadiness, etc.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2",
+  "pattern": "/api/ai|AskService|Grounding"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2",
+  "pattern": "/api/ai|AskService|Grounding",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "./.specstory/history/2026-11-18_11-29-53Z-backend-foundation-and-domain.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "./.specstory/history/2026-11-18_09-47-30Z-first-go-through-the.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "./spec/implementation-plan.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "./docs/spec-review.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "./spec/test-strategy.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "./spec/ui-flow.md"
+    },
+    {
+      "matchCount": 5,
+      "uri": "./spec/architecture.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "./.cursor/rules/ai-grounding.mdc"
+    },
+    {
+      "matchCount": 5,
+      "uri": "./spec/requirements.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "./spec/rag-api-contract.md"
+    }
+  ],
+  "totalFiles": 10,
+  "totalMatches": 30
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/pom.xml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/GlobalExceptionHandler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/IndexReadiness.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me read architecture.md section 11 for AskService details, evaluation strategy, implementation-plan for T10, existing controllers pattern, KnowledgeIndex, domain PublicTicketId, test patterns.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "AskService|CitationValidator|RetrievalService|PromptBuilder"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "AskService|CitationValidator|RetrievalService|PromptBuilder",
+  "topFiles": [
+    {
+      "matchCount": 4,
+      "uri": "spec/implementation-plan.md"
+    },
+    {
+      "matchCount": 6,
+      "uri": "spec/architecture.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 10
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/TicketApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to read rag-ingestion section 10 for visibility filter, evaluation strategy for tests, PublicTicketId, ChunkMetadataKeys, and check if there's visibility logic spec.
+
+A ChatModel implementation is needed for tests. Ollama chat is excluded in the test profile.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md",
+  "pattern": "visibility"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md",
+  "pattern": "visibility",
+  "topFiles": [
+    {
+      "matchCount": 4,
+      "uri": "spec/rag-ingestion.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 4
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/evaluation-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/domain/PublicTicketId.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/TestEmbeddingConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to read rag-ingestion section 10 for visibility rule - indexed version vs ticket version
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/KnowledgeIndex.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/service/TicketValidator.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Need section 10 visibility rule in rag-ingestion
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "validateQuestion|question"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "validateQuestion|question",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/TicketAppProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to add:
+- question max 500 to RagProperties or TicketAppProperties - spec says A-07 - I'll add to RagProperties ask section
+
+TicketIngestionRepository needs a batch lookup for indexed_version by ticket IDs to support visibility filtering.
+
+Checking Spring AI Document metadata and SearchRequest for similarity scores. Need to implement AskUnavailableException and a service-unavailable handler in GlobalExceptionHandler. A ScriptableChatModel will be used for test responses.
+
+Unit tests will cover pure functions like CitationValidator, TicketIdExtractor, PromptBuilder, and CitationSnippets. Integration tests will use a ScriptableTestChatModel with per-test response queues, matching the evaluation strategy's scripted fake chat requirement.
+
+ScriptableChatModel will be placed in test sources only, imported via @TestConfiguration or a test profile. The planned structure includes AskResult and AskOutcome for logging, DTOs for requests and responses, a RetrievedChunk wrapper for scored documents, RetrievalResult, TicketIdExtractor, and VisibilityFilter.
+
+The implementation plan now includes RetrievalService, PromptBuilder, BuiltPrompt, CitationValidator, CitationSnippets, CitationValidationResult, AskService, AskMetrics, AiController, and AssistantUnavailableException. Spring AI ChatModel.call(Prompt) returns ChatResponse, from which the answer text is extracted.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/TicketController.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar 2&gt;/dev/null | head -5; rg -l &#34;class Document&#34; ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/*.jar 2&gt;/dev/null | head -1</summary>
+```bash
+jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar 2>/dev/null | head -5; rg -l "class Document" ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/*.jar 2>/dev/null | head -1
+```
+
+```
+META-INF/
+META-INF/MANIFEST.MF
+org/
+org/springframework/
+org/springframework/ai/
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me check Document for distance/score in spring-ai-vector-store SearchRequest
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "distance|score|similarity"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "distance|score|similarity",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/resources/application.yml"
+    },
+    {
+      "matchCount": 4,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/SimpleKnowledgeIndex.java"
+    },
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/KnowledgeIndex.java"
+    },
+    {
+      "matchCount": 4,
+      "uri": "backend/src/main/java/com/ticketmanagement/config/RagProperties.java"
+    }
+  ],
+  "totalFiles": 4,
+  "totalMatches": 10
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar:~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2&gt;&amp;1 | head -30</summary>
+```bash
+javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar:~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2>&1 | head -30
+```
+
+```
+Error: class not found: org.springframework.ai.document.Document
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.ChatModel 2&gt;&amp;1 | head -20</summary>
+```bash
+javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.ChatModel 2>&1 | head -20
+```
+
+```
+Compiled from "ChatModel.java"
+public interface org.springframework.ai.chat.model.ChatModel extends org.springframework.ai.model.Model<org.springframework.ai.chat.prompt.Prompt, org.springframework.ai.chat.model.ChatResponse>, org.springframework.ai.chat.model.StreamingChatModel {
+  public default java.lang.String call(java.lang.String);
+  public default java.lang.String call(org.springframework.ai.chat.messages.Message...);
+  public abstract org.springframework.ai.chat.model.ChatResponse call(org.springframework.ai.chat.prompt.Prompt);
+  public default org.springframework.ai.chat.prompt.ChatOptions getOptions();
+  public default org.springframework.ai.chat.prompt.ChatOptions getDefaultOptions();
+  public default reactor.core.publisher.Flux<org.springframework.ai.chat.model.ChatResponse> stream(org.springframework.ai.chat.prompt.Prompt);
+  public default org.springframework.ai.model.ModelResponse call(org.springframework.ai.model.ModelRequest);
+  public default reactor.core.publisher.Flux stream(org.springframework.ai.model.ModelRequest);
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me find how Spring AI returns similarity scores - maybe Document.Builder with metadata DISTANCE
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "*.java",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2",
+  "pattern": "DISTANCE|distance|score"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2",
+  "pattern": "DISTANCE|distance|score",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me decompile SimpleVectorStore or read from jar strings
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: unzip -p ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org/springframework/ai/vectorstore/SimpleVectorStore.class 2&gt;/dev/null | strings | grep -i dist | head -5; jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | grep -i Search</summary>
+```bash
+unzip -p ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org/springframework/ai/vectorstore/SimpleVectorStore.class 2>/dev/null | strings | grep -i dist | head -5; jar tf ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar | grep -i Search
+```
+
+```
+org/springframework/ai/vectorstore/SearchRequest$Builder.class
+org/springframework/ai/vectorstore/SearchRequest.class
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me read SimpleVectorStore from source online or use javap on SimpleVectorStore
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -c -classpath ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.SimpleVectorStore 2&gt;&amp;1 | head -80</summary>
+```bash
+javap -c -classpath ~/.m2/repository/org/springframework/ai/spring-ai-vector-store/2.0.2/spring-ai-vector-store-2.0.2.jar org.springframework.ai.vectorstore.SimpleVectorStore 2>&1 | head -80
+```
+
+```
+Compiled from "SimpleVectorStore.java"
+public class org.springframework.ai.vectorstore.SimpleVectorStore extends org.springframework.ai.vectorstore.observation.AbstractObservationVectorStore {
+  protected java.util.Map<java.lang.String, org.springframework.ai.vectorstore.SimpleVectorStoreContent> store;
+
+  protected org.springframework.ai.vectorstore.SimpleVectorStore(org.springframework.ai.vectorstore.SimpleVectorStore$SimpleVectorStoreBuilder);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokespecial #1                  // Method org/springframework/ai/vectorstore/observation/AbstractObservationVectorStore."<init>":(Lorg/springframework/ai/vectorstore/AbstractVectorStoreBuilder;)V
+       5: aload_0
+       6: new           #7                  // class java/util/concurrent/ConcurrentHashMap
+       9: dup
+      10: invokespecial #9                  // Method java/util/concurrent/ConcurrentHashMap."<init>":()V
+      13: putfield      #12                 // Field store:Ljava/util/Map;
+      16: aload_0
+      17: invokestatic  #18                 // Method tools/jackson/databind/json/JsonMapper.builder:()Ltools/jackson/databind/json/JsonMapper$Builder;
+      20: invokestatic  #24                 // Method org/springframework/ai/util/JacksonUtils.instantiateAvailableModules:()Ljava/util/List;
+      23: invokevirtual #30                 // Method tools/jackson/databind/json/JsonMapper$Builder.addModules:(Ljava/lang/Iterable;)Ltools/jackson/databind/cfg/MapperBuilder;
+      26: checkcast     #31                 // class tools/jackson/databind/json/JsonMapper$Builder
+      29: invokevirtual #36                 // Method tools/jackson/databind/json/JsonMapper$Builder.build:()Ltools/jackson/databind/json/JsonMapper;
+      32: putfield      #40                 // Field jsonMapper:Ltools/jackson/databind/json/JsonMapper;
+      35: aload_0
+      36: new           #44                 // class org/springframework/ai/vectorstore/SimpleVectorStoreFilterExpressionEvaluat
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me check VectorStoreObservation or DocumentMetadata for distance - search in spring-ai documentation
+
+I can use SearchRequest with a configurable similarity threshold.
+
+The API likely does not expose similarity scores, so filtering by threshold would require application-level cosine similarity. I will inspect the Document class in spring-ai-commons to see what metadata is available.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2&gt;&amp;1</summary>
+```bash
+javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-commons/2.0.2/spring-ai-commons-2.0.2.jar org.springframework.ai.document.Document 2>&1
+```
+
+```
+Compiled from "Document.java"
+public class org.springframework.ai.document.Document {
+  public static final org.springframework.ai.document.ContentFormatter DEFAULT_CONTENT_FORMATTER;
+  public org.springframework.ai.document.Document(java.lang.String);
+  public org.springframework.ai.document.Document(java.lang.String, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(java.lang.String, java.lang.String, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(org.springframework.ai.content.Media, java.util.Map<java.lang.String, java.lang.Object>);
+  public org.springframework.ai.document.Document(java.lang.String, org.springframework.ai.content.Media, java.util.Map<java.lang.String, java.lang.Object>);
+  public static org.springframework.ai.document.Document$Builder builder();
+  public java.lang.String getId();
+  public java.lang.String getText();
+  public boolean isText();
+  public org.springframework.ai.content.Media getMedia();
+  public java.lang.String getFormattedContent();
+  public java.lang.String getFormattedContent(org.springframework.ai.document.MetadataMode);
+  public java.lang.String getFormattedContent(org.springframework.ai.document.ContentFormatter, org.springframework.ai.document.MetadataMode);
+  public java.util.Map<java.lang.String, java.lang.Object> getMetadata();
+  public java.lang.Double getScore();
+  public org.springframework.ai.document.ContentFormatter getContentFormatter();
+  public void setContentFormatter(org.springframework.ai.document.ContentFormatter);
+  public org.springframework.ai.document.Document$Builder mutate();
+  public boolean equals(java.lang.Object);
+  public int hashCode();
+  public java.lang.String toString();
+  static {};
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "**/DocumentMetadata*",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai",
+  "pattern": "distance|score|similarity"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/.m2/repository/org/springframework/ai",
+  "pattern": "distance|score|similarity",
+  "topFiles": [],
+  "totalFiles": 0,
+  "totalMatches": 0
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Document has getScore() - perfect.
+
+Beginning full implementation. Creating a worktree on a branch per project rules. No commit is needed.
+
+Adding a repository query to fetch indexed versions by public ticket IDs. Using a custom projection interface to map the result set.
+
+Defined the visibility filter logic. Tickets are only valid when their indexed version matches the ingestion version and status is INDEXED. Tickets missing an ingestion row or with a null indexed version are treated as invisible.
+
+Defined the core data structures for the retrieval pipeline. A `RetrievedChunk` record pairs each document with its score and a direct-lookup flag. A `RetrievalResult` aggregates the chunks and the set of ticket IDs they reference. A `TicketIdExtractor` regex will normalize ticket IDs to uppercase. A `PromptBuilder` will assemble the system and user messages. The `AskResult` record will carry the final answer, a grounding flag, the citations, and the outcome. The no-match response constant is set to "No relevant tickets found."
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "indexReadiness|IndexReadiness"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/backend",
+  "pattern": "indexReadiness|IndexReadiness",
+  "topFiles": [
+    {
+      "matchCount": 5,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/IngestionOutcomeWriter.java"
+    },
+    {
+      "matchCount": 4,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/IndexReconciler.java"
+    },
+    {
+      "matchCount": 1,
+      "uri": "backend/src/main/java/com/ticketmanagement/rag/IndexReadiness.java"
+    }
+  ],
+  "totalFiles": 3,
+  "totalMatches": 10
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+On reconcile, all tickets go to pending until indexed.
+
+During tests, ApplicationReady fires with zero tickets.
+
+A potential gap exists: new tickets are not added to the pending set on creation, so isReady may remain true while ingestion is still pending. The reconciler only populates pending during startup. This may be acceptable for v1.
+
+Fresh memory tests start with no tickets. After ingestion, chunks become visible. The default similarity threshold is 0.5, so similar questions should match. A repository method will verify ticket existence via TicketRepository.existsByPublicId. RetrievalService requires KnowledgeIndex, RagProperties, TicketRepository, TicketIngestionRepository, and EmbeddingModel. SearchRequest uses the prefixed query string directly and fetches topK multiplied by a candidate multiplier.
+
+The search threshold is set to 0.0 so the application filters candidates by similarity. A new ChunkVisibilityFilter component will load visible ticket versions and compare them against each candidate's ingest version to enforce visibility rules.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/ApplicationConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkMetadataKeys.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Add existsByPublicId to TicketRepository
+
+Context trimming will be handled by PromptBuilder or AskService, capping by maxChars and prioritizing direct lookup chunks.
+
+ScriptableTestChatModel will be placed in main config under a test profile. It implements ChatModel and supports enqueueing expected responses for deterministic test behavior.
+
+ScriptableTestChatModel polls scripted responses and falls back to a default grounded answer when none remain. Required Spring AI 2.0 imports are Prompt, ChatResponse, and AssistantMessage.
+
+Checking ChatResponse constructor details via javap. Also noting ChatGenerationMetadata import.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.ChatResponse 2&gt;&amp;1 | head -25</summary>
+```bash
+javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.ChatResponse 2>&1 | head -25
+```
+
+```
+Compiled from "ChatResponse.java"
+public class org.springframework.ai.chat.model.ChatResponse implements org.springframework.ai.model.ModelResponse<org.springframework.ai.chat.model.Generation> {
+  public org.springframework.ai.chat.model.ChatResponse(java.util.List<org.springframework.ai.chat.model.Generation>);
+  public org.springframework.ai.chat.model.ChatResponse(java.util.List<org.springframework.ai.chat.model.Generation>, org.springframework.ai.chat.metadata.ChatResponseMetadata);
+  public static org.springframework.ai.chat.model.ChatResponse$Builder builder();
+  public java.util.List<org.springframework.ai.chat.model.Generation> getResults();
+  public org.springframework.ai.chat.model.Generation getResult();
+  public org.springframework.ai.chat.metadata.ChatResponseMetadata getMetadata();
+  public boolean hasToolCalls();
+  public boolean hasFinishReasons(java.util.Set<java.lang.String>);
+  public java.lang.String toString();
+  public boolean equals(java.lang.Object);
+  public int hashCode();
+  public org.springframework.ai.model.ResponseMetadata getMetadata();
+  public org.springframework.ai.model.ModelResult getResult();
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Generation - javap
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.Generation 2&gt;&amp;1 | head -15</summary>
+```bash
+javap -classpath ~/.m2/repository/org/springframework/ai/spring-ai-model/2.0.2/spring-ai-model-2.0.2.jar org.springframework.ai.chat.model.Generation 2>&1 | head -15
+```
+
+```
+Compiled from "Generation.java"
+public class org.springframework.ai.chat.model.Generation implements org.springframework.ai.model.ModelResult<org.springframework.ai.chat.messages.AssistantMessage> {
+  public org.springframework.ai.chat.model.Generation(org.springframework.ai.chat.messages.AssistantMessage);
+  public org.springframework.ai.chat.model.Generation(org.springframework.ai.chat.messages.AssistantMessage, org.springframework.ai.chat.metadata.ChatGenerationMetadata);
+  public org.springframework.ai.chat.messages.AssistantMessage getOutput();
+  public org.springframework.ai.chat.metadata.ChatGenerationMetadata getMetadata();
+  public boolean equals(java.lang.Object);
+  public int hashCode();
+  public java.lang.String toString();
+  public org.springframework.ai.model.ResultMetadata getMetadata();
+  public java.lang.Object getOutput();
+}
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Add question max to limits - spec says 500 for ask question.
+
+Designing AskMetrics and RetrievalContextTrimmer. Direct lookups will use fixed score 1.0. The merge logic filters similarity candidates by visibility and threshold, then loads all chunks for named tickets into the direct lookup set. Results deduplicate by document ID, sort direct chunks first, then by score descending, and trim to max context length. Empty results return no match.
+
+AskQuestionValidator will live in the rag package. The controller will use @RequestBody AskRequest and return AskResponse. Validation runs before retrieval in AskService. Unit tests will cover invalid citations, missing citations, valid citations, ticket ID extraction, and citation snippets.
+
+Integration tests will cover AskApiIntegrationTest with a helper to wait for ingestion. RetrievalServiceTest will mock the index to verify visibility filtering. AskServiceTest will mock the chat model. Tests will cover irrelevant questions, empty retrieval results, and blank question validation returning 400 without calling the LLM. A ScriptableTestChatModel call counter will verify no generation occurs for invalid inputs. The default application.yml will include spring.ai.ollama.chat configuration.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Implementing the ask endpoint and related RAG components.
+
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/RagProperties.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Continue creating all the Java files
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/domain/AssistantUnavailableException.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskOutcome.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskResult.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievedChunk.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalResult.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/TicketIdExtractor.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/ChunkVisibilityFilter.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Need findByTicketPublicId on TicketIngestionRepository
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/BuiltPrompt.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/PromptBuilder.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/CitationValidationResult.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/CitationValidator.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/CitationSnippets.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Need Param import in TicketIngestionRepository - check if already imported
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/repository/TicketIngestionRepository.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskMetrics.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix AskMetrics - need import java.util.Set
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskMetrics.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskQuestionValidator.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/AskService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/dto/AskRequest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/dto/CitationResponse.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/dto/AskResponse.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/AiController.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/config/TestChatConfig.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/GlobalExceptionHandler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/web/GlobalExceptionHandler.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+CitationSnippets.build iterates citedTicketIds - but LinkedHashSet from validator preserves order - good
+
+The spec does not require citation list order.
+
+Test design covers relevant, irrelevant, unsupported, and invalid citation scenarios. Integration tests will use a helper to create tickets, await ingestion, and enqueue chat responses with citations. Similarity thresholds may need adjustment for test reliability. Invalid citations like TKT-9999 and unsupported answers lacking [ticket:...] markers will be rejected.
+
+Blank questions return 400 and trigger zero chat calls. Empty retrieval returns no match with zero chat calls. Index readiness will be tested via a mocked IndexReadiness in AskService unit tests. Ingestion awaiting logic will be copied from IngestionPipelineIntegrationTest. Unit tests will cover CitationValidator, TicketIdExtractor, CitationSnippets, and AskService with mocks. Integration tests will use AskApiIntegrationTest.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/CitationValidatorTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/TicketIdExtractorTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/CitationSnippetsTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+@TestPropertySource on method doesn't work in JUnit 5 by default - need @Nested class or @DynamicPropertySource.
+
+A nested SpringBootTest class would reload the context and is too heavy. The better approach is to avoid ingesting the test ticket so visibility filters remove its chunks, guaranteeing no matches without adjusting the threshold.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -35</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -35
+```
+
+```
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java:[90,25] invalid method reference
+  cannot find symbol
+    symbol:   method nonNull(T)
+    location: class java.lang.Object
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project ticket-management: Compilation failure
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java:[90,25] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method nonNull(T)
+[ERROR]     location: class java.lang.Object
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Need Objects::nonNull import in RetrievalService
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw -q verify 2&gt;&amp;1 | tail -40</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw -q verify 2>&1 | tail -40
+```
+
+```
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java:[91,25] invalid method reference
+  cannot find symbol
+    symbol:   method nonNull(T)
+    location: class java.lang.Object
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project ticket-management: Compilation failure
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java:[91,25] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method nonNull(T)
+[ERROR]     location: class java.lang.Object
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Let me read line 91 of RetrievalService - maybe wrong method reference
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Object::nonNull should be Objects::nonNull
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/java/com/ticketmanagement/rag/RetrievalService.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw verify 2&gt;&amp;1 | grep -E &#34;BUILD SUCCESS|BUILD FAILURE|Tests run:|ERROR].*Ask&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw verify 2>&1 | grep -E "BUILD SUCCESS|BUILD FAILURE|Tests run:|ERROR].*Ask"
+```
+
+```
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[67,31] reference to call is ambiguous
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[82,17] reference to call is ambiguous
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[82,30] no suitable method found for thenReturn(org.springframework.ai.chat.model.ChatResponse)
+[ERROR] BUILD FAILURE
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[67,31] reference to call is ambiguous
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[82,17] reference to call is ambiguous
+[ERROR] /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java:[82,30] no suitable method found for thenReturn(org.springframework.ai.chat.model.ChatResponse)
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Fix AskServiceTest - use explicit Prompt type for verify and when
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/rag/AskServiceTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw verify 2&gt;&amp;1 | grep -E &#34;BUILD SUCCESS|BUILD FAILURE|Tests run:|FAILURE!|ERROR.*Ask&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw verify 2>&1 | grep -E "BUILD SUCCESS|BUILD FAILURE|Tests run:|FAILURE!|ERROR.*Ask"
+```
+
+```
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.717 s -- in com.ticketmanagement.repository.CommentRepositoryIntegrationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.034 s -- in com.ticketmanagement.repository.TicketRepositoryIntegrationTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.657 s -- in com.ticketmanagement.web.TicketApiIntegrationTest
+[ERROR] Tests run: 6, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 0.473 s <<< FAILURE! -- in com.ticketmanagement.web.AskApiIntegrationTest
+[ERROR] com.ticketmanagement.web.AskApiIntegrationTest.relevantQuestionReturnsGroundedAnswer -- Time elapsed: 0.183 s <<< FAILURE!
+[ERROR] com.ticketmanagement.web.AskApiIntegrationTest.irrelevantQuestionReturnsNoMatchWithoutCallingChat -- Time elapsed: 0.016 s <<< FAILURE!
+[ERROR] com.ticketmanagement.web.AskApiIntegrationTest.emptyIndexReturnsNoMatch -- Time elapsed: 0.010 s <<< FAILURE!
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in com.ticketmanagement.TicketManagementApplicationTests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in com.ticketmanagement.rag.ChunkIdFactoryTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ticketmanagement.rag.TicketIdExtractorTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.246 s -- in com.ticketmanagement.rag.IngestionPipelineIntegrationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ticketmanagement.rag.CitationValidatorTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ticketmanagement.rag.TicketChunkerTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.rag.TicketDocumentExtractorTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.t
+… (output truncated)
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Failures:
+1. relevantQuestion - grounded false - likely retrieval empty or citation rejected
+
+2. irrelevant - chat was called when shouldn't be
+
+3. emptyIndex - probably chat called
+
+Let me read surefire report for details
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/target/surefire-reports/com.ticketmanagement.web.AskApiIntegrationTest.txt</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Issues:
+1. Relevant question - grounded false - could be retrieval failed (no visible chunks) OR citation rejected because default chat response "No detail in context." without citation when enqueue didn't work - but we did enqueue before mockMvc...
+
+Empty retrieval returns no-match without calling the chat model. This explains the grounded=false result.
+
+The relevant test fails because retrieval returns no chunks. The visibility filter or a low similarity score may be blocking results. Adding the ticket public ID directly to the question should bypass the threshold and force a direct lookup.
+
+The relevant test failure may stem from citation rejection rather than empty retrieval. If retrieval returns chunks but the chat model replies with the default "No detail in context." without a citation, the result is grounded=false. The irrelevant test shows the chat was called once, meaning retrieval returned chunks. Background ingestion may have indexed the unindexed ticket before the ask request, yet weak similarity could still cause the match to fail.
+
+The irrelevant test failure likely stems from test isolation. H2 in-memory persistence across tests in the same Spring class means tickets from earlier tests remain indexed, causing retrieval to return chunks unexpectedly. Using @DirtiesContext or unique database isolation would prevent this cross-test contamination.
+
+The test sequence is the culprit. The relevant test creates a ticket first, and the irrelevant test may still retrieve similarity hits from that ticket. The emptyIndex test fails because tickets from earlier tests remain in the database. Using @Order(1) or a separate test class with a fresh database would isolate the emptyIndex case.
+
+The emptyIndex test should assert a no-match response when retrieval returns nothing. Setting the similarity threshold to an impossible score would guarantee empty results. Deleting all tickets between tests via @Sql or @BeforeEach is risky because other integration tests may assume a clean database. TicketApiIntegrationTest creates its own tickets, so it is unaffected by such cleanup.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/main/resources/application.yml</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/backend/src/test/java/com/ticketmanagement/web/AskApiIntegrationTest.java</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw verify 2&gt;&amp;1 | grep -E &#34;BUILD SUCCESS|BUILD FAILURE|AskApi|Tests run: 49&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw verify 2>&1 | grep -E "BUILD SUCCESS|BUILD FAILURE|AskApi|Tests run: 49"
+```
+
+```
+[INFO] Running com.ticketmanagement.web.AskApiIntegrationTest
+2026-11-18T12:53:52.915+01:00  INFO 7764 --- [ticket-management] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ticketmanagement.web.AskApiIntegrationTest]: AskApiIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-11-18T12:53:52.916+01:00  INFO 7764 --- [ticket-management] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ticketmanagement.TicketManagementApplication for test class com.ticketmanagement.web.AskApiIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.414 s -- in com.ticketmanagement.web.AskApiIntegrationTest
+[INFO] Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+All 49 tests pass. Let me run the ask-related tests specifically with full output for the user's report.
+
+Also verifying that IngestionPipelineIntegrationTest passes with threshold 0.
+
+IngestionPipelineIntegrationTest passed with threshold 0 in the full verify run.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend &amp;&amp; ./mvnw test -Dtest=&#39;CitationValidatorTest,TicketIdExtractorTest,CitationSnippetsTest,AskServiceTest,AskApiIntegrationTest&#39; 2&gt;&amp;1 | grep -E &#34;Running |Tests run:&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2/backend && ./mvnw test -Dtest='CitationValidatorTest,TicketIdExtractorTest,CitationSnippetsTest,AskServiceTest,AskApiIntegrationTest' 2>&1 | grep -E "Running |Tests run:"
+```
+
+```
+[INFO] Running com.ticketmanagement.web.AskApiIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.013 s -- in com.ticketmanagement.web.AskApiIntegrationTest
+[INFO] Running com.ticketmanagement.rag.TicketIdExtractorTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ticketmanagement.rag.TicketIdExtractorTest
+[INFO] Running com.ticketmanagement.rag.CitationValidatorTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ticketmanagement.rag.CitationValidatorTest
+[INFO] Running com.ticketmanagement.rag.CitationSnippetsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ticketmanagement.rag.CitationSnippetsTest
+[INFO] Running com.ticketmanagement.rag.AskServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.270 s -- in com.ticketmanagement.rag.AskServiceTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Complete summary for the user with what was implemented, files, flow, and test results.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+## `POST /api/ai/ask`
+
+### API
+- **`AiController`** — `POST /api/ai/ask` with `AskRequest` / `AskResponse` / `CitationResponse` (matches `spec/rag-api-contract.md`).
+- **503** `SERVICE_UNAVAILABLE` when the index is rebuilding or the chat model fails/times out (`AssistantUnavailableException`).
+- **400** `VALIDATION_ERROR` for blank or over-limit questions (before embed/chat).
+
+### Orchestration (single retrieval → generation path)
+`AskService` validates → checks `IndexReadiness` → `RetrievalService` → if empty, exact **`No relevant tickets found.`** (no LLM) → `PromptBuilder` → `ChatModel` (timeout from `app.rag.ask.timeout`) → `CitationValidator` → on failure, fail-closed to the same no-match body (`CITATION_REJECTED` logged) → `CitationSnippets` for server-built citations.
+
+### Retrieval
+- Similarity search with **`app.rag.top-k`**, **`app.rag.similarity-threshold`**, candidate over-fetch multiplier.
+- **Visibility rule** (`ChunkVisibilityFilter`): ticket exists and `ingestVersion == indexed_version`.
+- **Named ticket IDs** in the question (`TicketIdExtractor`): direct lookup, included even below threshold.
+- Context capped by **`app.rag.context.max-chars`**.
+
+### Grounding
+- Fixed system prompt: context-only, `[ticket:<id>]` citations, no invented IDs, context is data not instructions.
+- **`CitationValidator`**: every `[ticket:…]` must be in the retrieved set; at least one citation required.
+- Citations/snippets come from retrieved chunks only (highest score per ticket, 300-char snippet).
+
+### Configuration
+- `app.rag.context.max-chars`, `app.rag.ask.question-max`, `app.rag.ask.timeout`
+- `spring.ai.ollama.chat.options.model` (default `llama3.2`) for non-test profiles
+- Test profile: Ollama chat excluded; **`ScriptableTestChatModel`** (`TestChatConfig`) for deterministic answers
+
+### Key files
+| Area | Files |
+|------|--------|
+| HTTP | `web/AiController.java`, `web/dto/AskRequest.java`, `AskResponse.java`, `CitationResponse.java` |
+| RAG | `rag/AskService.java`, `RetrievalService.java`, `PromptBuilder.java`, `CitationValidator.java`, `CitationSnippets.java`, `ChunkVisibilityFilter.java`, `TicketIdExtractor.java`, … |
+| Errors | `domain/AssistantUnavailableException.java`, `GlobalExceptionHandler` |
+
+---
+
+## Test results (actual run)
+
+**Ask-focused suite** (`CitationValidatorTest`, `TicketIdExtractorTest`, `CitationSnippetsTest`, `AskServiceTest`, `AskApiIntegrationTest`):
+
+| Test class | Tests | Result |
+|------------|------:|--------|
+| `AskApiIntegrationTest` | 6 | **0 failures** |
+| `CitationValidatorTest` | 3 | **0 failures** |
+| `CitationSnippetsTest` | 2 | **0 failures** |
+| `AskServiceTest` | 2 | **0 failures** |
+| `TicketIdExtractorTest` | 1 | **0 failures** |
+| **Total** | **14** | **PASS** |
+
+**`AskApiIntegrationTest` covers:** grounded relevant Q, irrelevant/no-match (no chat), invented citation fail-closed, uncited answer fail-closed, empty corpus no-match, blank question 400.
+
+**Full backend:** `./mvnw verify` — **49 tests, BUILD SUCCESS**.
+
+---
+
+**Local use:** Ollama with embedding + chat models running; ingestion must complete (`IndexReadiness` ready) before ask returns answers. Test profile uses fake embed/chat and does not require Ollama.

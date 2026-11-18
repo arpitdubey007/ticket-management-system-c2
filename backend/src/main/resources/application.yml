@@ -13,6 +13,16 @@ spring:
   h2:
     console:
       enabled: false
+  ai:
+    ollama:
+      base-url: http://127.0.0.1:11434
+      embedding:
+        model: nomic-embed-text
+      chat:
+        options:
+          model: llama3.2
+      init:
+        pull-model-strategy: when_missing
 
 app:
   tickets:
@@ -31,6 +41,29 @@ app:
       - TECHNICAL
       - OTHER
     comments-max-per-ticket: 200
+  rag:
+    top-k: 5
+    similarity-threshold: 0.5
+    chunk:
+      max-chars: 1500
+      overlap-chars: 150
+    embedding:
+      document-prefix: ""
+      query-prefix: ""
+    retrieval:
+      candidate-multiplier: 3
+    ingestion:
+      poll-interval: 2s
+      max-attempts: 5
+      backoff:
+        initial: 5s
+        multiplier: 2
+        max: 5m
+    context:
+      max-chars: 6000
+    ask:
+      question-max: 500
+      timeout: 60s
 
 ---
 spring:
@@ -39,6 +72,16 @@ spring:
       on-profile: test
   datasource:
     url: jdbc:h2:mem:tickets;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
+app:
+  rag:
+    similarity-threshold: 0.99
+    ingestion:
+      backoff:
+        initial: 1ms
 
 ---
 spring:
