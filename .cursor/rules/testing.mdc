@@ -1,0 +1,44 @@
+---
+description: Test expectations for the support-ticket backend, including JUnit 5, Mockito, Spring Boot tests, Testcontainers, state-machine tests, and RAG evaluation. Use when writing or reviewing tests.
+globs: backend/**/src/test/**/*.java
+alwaysApply: false
+---
+
+# Testing
+
+## Stack
+
+- JUnit 5 for all tests. Do not add JUnit 4.
+- Mockito for unit-test doubles. Prefer constructor injection so collaborators can be passed in directly.
+- `@SpringBootTest` (or a sliced test such as `@WebMvcTest` or `@DataJpaTest`) for integration tests that need the Spring context.
+- AssertJ for assertions.
+
+## What to unit test vs integrate
+
+- Unit-test services, the state machine, and grounding checks with Mockito. No Spring context and no Docker.
+- Integration-test HTTP status codes, validation, and persistence with the Spring context and embedded H2.
+- Use Testcontainers only when a test needs a real external service (a future PostgreSQL/pgvector profile, or a containerized model server). Do not require Docker for the default H2 and `SimpleVectorStore` suite. If a Testcontainers test runs, it must skip cleanly when Docker is unavailable, with a message that says why.
+
+## State-machine testing
+
+For every status, test each allowed transition and at least one rejected transition. Assert the resulting status, the persisted state, and the error on rejection. Do not only test the happy path.
+
+## RAG evaluation testing
+
+- Keep a small labeled set: question, expected ticket ids, and whether an answer is allowed.
+- Assert retrieved ids, not only that some text came back.
+- Cover a question that must hit, a question that must miss, and a question whose best score is below the similarity threshold.
+- Assert the exact no-relevant-tickets fallback from `ai-grounding` when nothing qualifies.
+- Assert every citation in the answer is in the retrieved set, and that no ticket id outside that set appears.
+
+## Negative cases
+
+Each feature needs tests for invalid input, a missing resource, an illegal state change, and (for RAG) empty or below-threshold retrieval. Validation failures must assert the HTTP status and the error body, not only that an exception was thrown.
+
+## Minimum expectations
+
+- A new or changed service behavior has a unit test.
+- A new or changed endpoint has one success test and one failure test.
+- A state-machine change updates the transition tests.
+- A retrieval, chunking, threshold, or prompt change updates the RAG evaluation tests.
+- Tests must not depend on test order, real network calls, or data left by another test.

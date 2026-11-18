@@ -1,0 +1,69 @@
+---
+description: Java 21 and Spring Boot conventions for the support-ticket backend (layers, injection, entities vs DTOs, errors, transactions, logging, packages). Use when writing or reviewing backend Java.
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Java 21 and Spring Boot
+
+Target Java 21 and Spring Boot 4.x. Pin GA Spring AI 2.0.x with Boot 4.0.x or 4.1.x. Do not use Spring AI 2.1 release candidates or Boot 3 examples without checking they still apply.
+
+## Language
+
+- Use records for immutable DTOs and value types.
+- Prefer `java.time` over `java.util.Date`.
+- Prefer switch expressions and pattern matching over long `if`/`else` chains.
+- Do not use raw types or wildcard-heavy signatures when a concrete type is known.
+
+## Packages
+
+Root package: `com.ticketmanagement`.
+
+- `domain` — entities, value objects, state-machine rules
+- `repository` — Spring Data repositories
+- `service` — use cases and transactions
+- `web` — controllers, request and response DTOs, exception advice
+- `config` — beans and `@ConfigurationProperties`
+- `rag` — ingestion, retrieval, and grounding
+
+One type per file. The type name matches the file name.
+
+## Layers
+
+Controller → service → repository.
+
+- Controllers translate HTTP to a service call and a DTO. They do not call repositories or contain business rules.
+- Services own use cases, validation of state changes, and transactions.
+- Repositories only load and save data.
+- Domain types do not depend on web DTOs or Spring MVC.
+
+## Dependency injection
+
+Constructor injection only. Do not use field injection or `@Autowired` on fields. Beans are stateless unless the class documents why it holds state (for example the in-memory vector store).
+
+## Entity and DTO separation
+
+JPA entities stay inside the service boundary. Controllers accept and return DTOs only. Do not serialize entities from REST methods, and do not bind request bodies onto entities.
+
+## Exceptions
+
+- Services throw specific unchecked exceptions (`TicketNotFoundException`, `InvalidTransitionException`).
+- One `@RestControllerAdvice` maps them to the error body in `api-standards`.
+- Do not catch `Exception` and swallow it. Do not put stack traces in API responses.
+
+## Transactions
+
+- Put `@Transactional` on the service method that changes persistent state.
+- Use `@Transactional(readOnly = true)` for read use cases.
+- Do not start transactions in controllers.
+- Do not call the embedding or chat model inside a database transaction.
+
+## Logging
+
+- SLF4J via `LoggerFactory`. Parameterized messages: `log.info("Updated ticket {}", id)`.
+- WARN for rejected input or illegal transitions. ERROR for unexpected failures, with the exception.
+- Do not log secrets, API keys, full ticket bodies, or raw model prompts.
+
+## Configuration
+
+Put ports, model names, top-K, and similarity thresholds in `application.yml` and bind them with `@ConfigurationProperties`. Do not hardcode them.

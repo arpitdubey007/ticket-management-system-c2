@@ -1,0 +1,63 @@
+---
+description: Conventions for knowledge-base ingestion, chunking, metadata, Ollama embeddings, SimpleVectorStore, top-K, similarity threshold, and stale documents. Use when implementing or changing retrieval, ingestion, or vector-store code.
+alwaysApply: false
+---
+
+# RAG Vector Store
+
+The ticket database is embedded H2. The vector index is Spring AI `SimpleVectorStore` (in-memory, optional JSON `save`/`load`). Embeddings come from Ollama running in Docker. H2 and embedded PostgreSQL cannot run pgvector; do not add pgvector unless the architecture decision changes.
+
+## Ingestion
+
+- Ingest only approved knowledge-base documents and ticket content the product decision says is searchable.
+- Ingestion is idempotent. Running it twice must not duplicate chunks.
+- Do not call Ollama inside a database transaction.
+- On startup, either re-ingest from the source documents or `load` a previously saved store. Document which one the runtime uses.
+
+## Chunking
+
+- Chunk by structure first (headings, paragraphs), then by size.
+- Keep chunks small enough for the embedding model context and large enough to hold one support fact. Record the target size and overlap in configuration, not in code literals.
+- Do not split a ticket id, status, or title away from the sentence that states it.
+
+## Metadata
+
+Every chunk stores:
+
+- `sourceId` — stable document or ticket id
+- `sourceType` — `ticket` or `knowledge-base`
+- `chunkIndex` — order within the source
+- `contentHash` — hash of the source text used to detect staleness
+- `title` — human-readable label for citations
+
+Do not store secrets or raw credentials in chunk text or metadata.
+
+## Embedding model
+
+- Use the Ollama embedding model named in configuration (the current candidate is `nomic-embed-text`).
+- The vector dimension must match that model. Changing model or dimension requires a full re-index.
+- One embedding model is authoritative at a time. Do not mix vectors from two models in one store.
+
+## Vector store
+
+- Build `SimpleVectorStore` as an explicit `@Bean`. It has no starter auto-configuration.
+- This store is for development and evaluation. It scans all vectors. Do not treat it as a production index.
+- If the store is persisted, the JSON file lives under a configured path and is gitignored.
+
+## top-K and threshold
+
+- `topK` and the minimum similarity score come from configuration and can change without a code edit.
+- Retrieval returns at most `topK` chunks whose score is at or above the threshold.
+- A chunk below the threshold is not context, even if it is the best hit.
+
+## Re-ingestion and stale documents
+
+- When source text changes, `contentHash` changes. Delete that `sourceId`'s chunks before inserting the new ones.
+- When a source is removed, delete its chunks. Do not leave them searchable.
+- A full rebuild must replace the store contents so retired documents cannot be retrieved.
+
+## Retrieval quality
+
+- Log source id and score for each returned chunk at debug level. Do not log full chunk text at info.
+- A retrieval change ships with an evaluation update (see the testing rule): at least one expected hit, one expected miss, and one below-threshold case.
+- Prefer fewer relevant chunks over filling `topK` with weak matches.

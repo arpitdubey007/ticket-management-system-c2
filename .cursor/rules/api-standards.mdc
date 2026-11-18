@@ -1,0 +1,67 @@
+---
+description: REST conventions for the support-ticket API, including resource names, status codes, validation, error bodies, pagination, and OpenAPI. Use when designing, implementing, or reviewing HTTP endpoints or spec/api-contract.md.
+alwaysApply: false
+---
+
+# API Standards
+
+## Naming
+
+- Resources are plural nouns: `/api/tickets`, `/api/tickets/{ticketId}`.
+- Use path segments for resources and query parameters for filters: `/api/tickets?status=OPEN`.
+- Do not put verbs in paths. Actions that are not CRUD are a sub-resource or a verb only when a state change is not a field update, for example `POST /api/tickets/{ticketId}/comments`.
+- JSON fields are camelCase. Path and query parameters are camelCase or the established kebab-case already used in the contract; do not mix both in one endpoint.
+
+## Methods and status codes
+
+- `GET` reads and is safe. `POST` creates. `PUT` replaces. `PATCH` partially updates. `DELETE` removes.
+- `200` for a successful read or update with a body. `201` for a create, with a `Location` header. `204` for a success with no body.
+- `400` for malformed JSON or failed bean validation. `404` for an unknown id. `409` for an illegal state transition or a conflict. `422` only when the body is well-formed but violates a domain rule that is not a state conflict.
+- `500` only for unexpected failures. Do not map a missing ticket or a bad transition to `500`.
+
+## Validation
+
+- Validate request bodies with Jakarta Bean Validation on the request DTO.
+- Reject unknown fields only if the contract says so; otherwise ignore them.
+- Validate path and query parameters. Return `400` with the error body, not an empty response.
+
+## Response format
+
+- Success bodies are the resource or a list wrapper. Do not wrap every response in a generic `data` envelope unless the endpoint is paginated.
+- List endpoints that can grow use the pagination shape below.
+- Timestamps are ISO-8601 in UTC.
+
+## Error body
+
+Every error response uses the same JSON shape:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Ticket 123 was not found.",
+  "path": "/api/tickets/123",
+  "timestamp": "2026-11-18T10:15:30Z"
+}
+```
+
+Validation errors add `fieldErrors`: `{ "field": "title", "message": "must not be blank" }`. Do not include stack traces, SQL, or internal class names.
+
+## Pagination
+
+`GET` collections accept `page` (0-based) and `size` (default 20, max 100). Response:
+
+```json
+{
+  "items": [],
+  "page": 0,
+  "size": 20,
+  "totalItems": 0,
+  "totalPages": 0
+}
+```
+
+## Documentation
+
+- Document every endpoint in OpenAPI (springdoc). The spec in `spec/api-contract.md` and the OpenAPI document must describe the same paths, status codes, and error body.
+- When they differ, update the contract first, then the code.

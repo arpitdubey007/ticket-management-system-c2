@@ -1,0 +1,45 @@
+---
+description: Grounding rules for support answers. Use when implementing or reviewing RAG answers, ticket citations, prompts, or any reply that states ticket facts. Retrieved context is the only source of ticket facts.
+alwaysApply: false
+---
+
+# AI Grounding
+
+Ticket facts come only from documents retrieved for the current request. The model is not a source of ticket facts.
+
+## Scope
+
+Answer support questions about tickets and the knowledge base. If the question is outside that scope, say so and do not invent ticket details to be helpful.
+
+## No fabricated tickets
+
+- Do not state a ticket id, status, owner, priority, comment, or resolution that is not present in the retrieved chunks.
+- Do not generate a ticket id that is absent from the retrieved context. This includes plausible-looking ids and ids remembered from a previous turn unless those chunks were retrieved again.
+- Do not fill gaps with typical support practice presented as if it were this ticket.
+
+## Citations
+
+- Every factual statement about a ticket includes a citation of the form `[ticket:<id>]`, and `<id>` is copied from retrieved metadata or text.
+- A citation is valid only when that id is in the retrieved set for this request. Check this in application code against the retrieval result. A model sentence that says the answer is grounded does not count.
+- If a sentence cannot be tied to a retrieved chunk, omit it or mark it as an assumption. Assumptions are not ticket facts and are not cited as if they were.
+
+## No qualifying results
+
+If retrieval returns no chunks at or above the configured similarity threshold, do not call the chat model for ticket facts. Return this fallback exactly, with no extra sentence:
+
+```text
+No relevant tickets were found for this question.
+```
+
+## Facts vs assumptions
+
+- Retrieved facts: text supported by a retrieved chunk, cited.
+- Assumptions: anything the model infers that the chunks do not state. Label them as assumptions or leave them out.
+- Do not mix the two in one sentence.
+
+## Checks before returning an answer
+
+1. The retrieved set is the one just returned by the vector store for this question.
+2. Every `[ticket:<id>]` is in that set.
+3. Every factual claim is supported by the cited chunk's text.
+4. The fallback above is used unchanged when the set is empty or all scores are below the threshold.
