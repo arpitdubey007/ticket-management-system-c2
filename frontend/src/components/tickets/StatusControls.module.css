@@ -1,0 +1,43 @@
+.section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.heading {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.resolveForm {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  width: 100%;
+}
+
+.resolveActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
