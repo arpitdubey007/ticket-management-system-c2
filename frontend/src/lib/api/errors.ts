@@ -39,6 +39,9 @@ export function bannerMessage(error: unknown): string {
     if (code === "SERVICE_UNAVAILABLE") {
       return message || "The assistant is unavailable. Try again later.";
     }
+    if (code === "ANSWER_NOT_VERIFIED") {
+      return message || "The assistant could not verify the answer. Try again later.";
+    }
     if (code === "INTERNAL_ERROR" || !code) {
       return "Something went wrong. Try again.";
     }

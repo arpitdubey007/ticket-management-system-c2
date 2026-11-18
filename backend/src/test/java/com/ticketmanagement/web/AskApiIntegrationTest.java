@@ -114,7 +114,7 @@ class AskApiIntegrationTest {
     }
 
     @Test
-    void invalidCitationFromModelFailsClosed() throws Exception {
+    void invalidCitationFromModelReturns502() throws Exception {
         var ticket = ticketService.createTicket(
                 "Account locked", "User forgot password.", "ACCOUNT", "LOW", null);
         awaitIngested(ticket.getId());
@@ -127,14 +127,12 @@ class AskApiIntegrationTest {
                                 {"question":"Why was the account locked on %s?"}
                                 """
                                 .formatted(ticket.getPublicId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answer").value(AskResult.NO_MATCH_ANSWER))
-                .andExpect(jsonPath("$.grounded").value(false))
-                .andExpect(jsonPath("$.citations").isEmpty());
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("ANSWER_NOT_VERIFIED"));
     }
 
     @Test
-    void unsupportedAnswerWithoutCitationFailsClosed() throws Exception {
+    void unsupportedAnswerWithoutCitationReturns502() throws Exception {
         var ticket = ticketService.createTicket(
                 "Slow page", "Checkout spinner never stops.", "TECHNICAL", "MEDIUM", null);
         awaitIngested(ticket.getId());
@@ -147,9 +145,8 @@ class AskApiIntegrationTest {
                                 {"question":"Why is the payment page slow on %s?"}
                                 """
                                 .formatted(ticket.getPublicId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answer").value(AskResult.NO_MATCH_ANSWER))
-                .andExpect(jsonPath("$.grounded").value(false));
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value("ANSWER_NOT_VERIFIED"));
     }
 
     @Test

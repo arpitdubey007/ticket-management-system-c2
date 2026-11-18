@@ -15,6 +15,7 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 
+import com.ticketmanagement.domain.AnswerNotVerifiedException;
 import com.ticketmanagement.domain.AssistantUnavailableException;
 
 import com.ticketmanagement.web.dto.CitationResponse;
@@ -80,7 +81,8 @@ public class AskService {
         if (!validation.valid()) {
             askMetrics.recordCitationRejected(validation.rejectedTicketIds());
             askMetrics.record(AskOutcome.CITATION_REJECTED, retrieval.chunks().size());
-            return AskResult.noMatch(AskOutcome.CITATION_REJECTED);
+            throw new AnswerNotVerifiedException(
+                    "The assistant could not verify the answer against ticket sources. Try again later.");
         }
 
         List<CitationResponse> citations = citationSnippets.build(validation.citedTicketIds(), retrieval.chunks());

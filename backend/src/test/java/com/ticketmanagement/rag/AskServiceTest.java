@@ -12,6 +12,8 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import com.ticketmanagement.domain.AnswerNotVerifiedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,7 +70,7 @@ class AskServiceTest {
   }
 
   @Test
-  void failClosedWhenCitationValidationFails() {
+  void throwsWhenCitationValidationFails() {
     when(askQuestionValidator.validateAndTrim("q")).thenReturn("q");
     when(indexReadiness.isReady()).thenReturn(true);
     Document doc =
@@ -88,10 +90,8 @@ class AskServiceTest {
   when(citationValidator.validate(any(), any()))
     .thenReturn(new CitationValidationResult(false, Set.of(), Set.of("TKT-9999")));
 
-  AskResult result = askService.ask("q");
-
-  assertThat(result.answer()).isEqualTo(AskResult.NO_MATCH_ANSWER);
-  assertThat(result.outcome()).isEqualTo(AskOutcome.CITATION_REJECTED);
+  org.assertj.core.api.Assertions.assertThatThrownBy(() -> askService.ask("q"))
+      .isInstanceOf(AnswerNotVerifiedException.class);
   verify(citationSnippets, never()).build(any(), any());
   }
 }

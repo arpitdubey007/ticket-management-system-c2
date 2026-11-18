@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class CitationValidator {
 
     private static final Pattern CITATION = Pattern.compile("\\[ticket:(TKT-\\d+)]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern BARE_TICKET_ID = Pattern.compile("TKT-\\d+", Pattern.CASE_INSENSITIVE);
 
     public CitationValidationResult validate(String answer, Set<String> retrievedTicketIds) {
         if (answer == null || answer.isBlank()) {
@@ -25,6 +26,13 @@ public class CitationValidator {
             if (retrievedTicketIds.contains(ticketId)) {
                 cited.add(ticketId);
             } else {
+                rejected.add(ticketId);
+            }
+        }
+        Matcher bareMatcher = BARE_TICKET_ID.matcher(answer);
+        while (bareMatcher.find()) {
+            String ticketId = bareMatcher.group().toUpperCase(Locale.ROOT);
+            if (!retrievedTicketIds.contains(ticketId)) {
                 rejected.add(ticketId);
             }
         }

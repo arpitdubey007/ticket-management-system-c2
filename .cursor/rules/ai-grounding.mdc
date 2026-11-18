@@ -42,4 +42,4 @@ No relevant tickets found.
 1. The retrieved set is the one just returned by the vector store for this question.
 2. Every `[ticket:<id>]` is in that set.
 3. Every factual claim is supported by the cited chunk's text.
-4. The fallback above is used unchanged when the set is empty or all scores are below the threshold.
+4. The fallback above is used unchanged when the set is empty or all scores are below the threshold. Citation validation failure returns HTTP 502 `ANSWER_NOT_VERIFIED`, not the no-match sentence.

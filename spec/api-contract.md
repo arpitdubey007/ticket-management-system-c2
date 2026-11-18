@@ -42,6 +42,7 @@ Every error uses this shape. `code` is the machine-readable value the UI branche
 | `INVALID_TRANSITION` | 400 | Status change is not in the transition table |
 | `NOT_FOUND` | 404 | Unknown `{publicId}` |
 | `CONFLICT` | 409 | Edit or comment on a terminal ticket, or a lost optimistic lock |
+| `ANSWER_NOT_VERIFIED` | 502 | Ask only: retrieval succeeded but citation validation failed (`spec/rag-api-contract.md`) |
 | `INTERNAL_ERROR` | 500 | Unexpected failure. `message` is generic. No stack trace, SQL, or class name |
 
 ### Pagination

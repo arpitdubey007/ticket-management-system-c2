@@ -92,4 +92,4 @@ spring:
     url: jdbc:h2:file:./data/tickets;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
   h2:
     console:
-      enabled: true
+      enabled: false

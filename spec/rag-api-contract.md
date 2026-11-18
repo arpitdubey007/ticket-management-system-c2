@@ -97,9 +97,13 @@ No relevant tickets found.
 
 ### Citation check failed
 
-If the model answer contains a ticket id that was not retrieved, or contains no valid citation, the model text is discarded (FR-13 AC3, architecture AD-08). The HTTP body is the no-match body above, so the client never displays unverified text.
+If the model answer contains a ticket id that was not retrieved (in `[ticket:<id>]` markers or as bare `TKT-<n>` text), or contains no valid bracket citation, the model text is discarded (FR-13 AC3). The client must not display unverified text.
 
-The log outcome is `CITATION_REJECTED`, which is distinct from `NO_MATCH` (NFR-OBS-02). The response body does not add a field for this, because the public fields are only `answer`, `grounded`, and `citations`.
+| HTTP | `code` | Body |
+|---|---|---|
+| 502 | `ANSWER_NOT_VERIFIED` | Standard error JSON (`spec/api-contract.md`). Message explains that the answer could not be verified against ticket sources. |
+
+The log outcome is `CITATION_REJECTED`, distinct from `NO_MATCH` (NFR-OBS-02).
 
 ### Error responses
 

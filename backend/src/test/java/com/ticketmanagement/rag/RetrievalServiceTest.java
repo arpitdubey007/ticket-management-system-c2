@@ -91,15 +91,24 @@ class RetrievalServiceTest {
         assertThat(result.retrievedTicketIds()).contains("TKT-1001");
     }
 
-  @Test
+    @Test
     void ignoresNonExistentNamedTicket() {
-        when(knowledgeIndex.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
         when(ticketRepository.findByPublicId("TKT-9999")).thenReturn(Optional.empty());
 
         RetrievalResult result = retrievalService.retrieve("Check TKT-9999");
 
         assertThat(result.chunks()).isEmpty();
         verify(knowledgeIndex, never()).findByTicketId("TKT-9999");
+    }
+
+    @Test
+    void skipsSimilarityWhenNamedIdsDoNotExist() {
+        when(ticketRepository.findByPublicId("TKT-9999")).thenReturn(Optional.empty());
+
+        RetrievalResult result = retrievalService.retrieve("Resolution for TKT-9999 please");
+
+        assertThat(result.chunks()).isEmpty();
+        verify(knowledgeIndex, never()).similaritySearch(any());
     }
 
     private static Document scoredDoc(String id, String ticketId, double score) {

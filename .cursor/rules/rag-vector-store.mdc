@@ -22,13 +22,11 @@ The ticket database is embedded H2. The vector index is Spring AI `SimpleVectorS
 
 ## Metadata
 
-Every chunk stores:
+Every chunk stores (see `spec/rag-ingestion.md` and `ChunkMetadataKeys`):
 
-- `sourceId` — stable document or ticket id
-- `sourceType` — `ticket` or `knowledge-base`
-- `chunkIndex` — order within the source
-- `contentHash` — hash of the source text used to detect staleness
-- `title` — human-readable label for citations
+- `ticketId`, `status`, `priority`, `assignee`, `category`
+- `kind` (`DESCRIPTION`, `COMMENT`, `RESOLUTION_NOTES`), `sourceRef`, `chunkIndex`
+- `ingestVersion`, `contentHash`, `title`
 
 Do not store secrets or raw credentials in chunk text or metadata.
 

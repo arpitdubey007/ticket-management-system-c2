@@ -39,6 +39,15 @@ public class RetrievalService {
     }
 
     public RetrievalResult retrieve(String question) {
+        Set<String> namedIds = ticketIdExtractor.extract(question);
+        if (!namedIds.isEmpty()) {
+            boolean anyNamedExists =
+                    namedIds.stream().anyMatch(id -> ticketRepository.findByPublicId(id).isPresent());
+            if (!anyNamedExists) {
+                return new RetrievalResult(List.of(), Set.of());
+            }
+        }
+
         String query = ragProperties.getEmbedding().getQueryPrefix() + question;
         int topK = ragProperties.getTopK();
         int candidates = topK * ragProperties.getRetrieval().getCandidateMultiplier();
@@ -61,7 +70,6 @@ public class RetrievalService {
                 .limit(topK)
                 .toList();
 
-        Set<String> namedIds = ticketIdExtractor.extract(question);
         Map<String, RetrievedChunk> merged = new LinkedHashMap<>();
         for (RetrievedChunk chunk : aboveThreshold) {
             merged.putIfAbsent(chunk.document().getId(), chunk);

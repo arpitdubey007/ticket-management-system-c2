@@ -33,4 +33,13 @@ class CitationValidatorTest {
         var result = validator.validate("Payment issue resolved.", Set.of("TKT-1001"));
         assertThat(result.valid()).isFalse();
     }
+
+    @Test
+    void rejectsBareInventedTicketIdInProse() {
+        var result = validator.validate(
+                "See TKT-9999 and [ticket:TKT-1001] for details.",
+                Set.of("TKT-1001"));
+        assertThat(result.valid()).isFalse();
+        assertThat(result.rejectedTicketIds()).contains("TKT-9999");
+    }
 }

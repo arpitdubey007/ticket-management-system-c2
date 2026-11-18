@@ -7,6 +7,18 @@ describe("bannerMessage", () => {
     expect(bannerMessage(new NetworkError())).toBe("The server could not be reached.");
   });
 
+  it("maps unverified assistant answers", () => {
+    const error = new ApiError({
+      status: 502,
+      error: "Bad Gateway",
+      code: "ANSWER_NOT_VERIFIED",
+      message: "The assistant could not verify the answer against ticket sources. Try again later.",
+      path: "/api/ai/ask",
+      timestamp: "2026-01-01T00:00:00Z",
+    });
+    expect(bannerMessage(error)).toContain("could not verify");
+  });
+
   it("maps assistant outage", () => {
     const error = new ApiError({
       status: 503,

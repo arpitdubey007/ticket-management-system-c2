@@ -1,6 +1,6 @@
 # Test execution report
 
-**Date:** 2026-11-18  
+**Date:** 2026-11-18 (updated after review-fix pass)  
 **Spec basis:** `spec/test-strategy.md`, `spec/evaluation-strategy.md`  
 **Environment:** macOS, Java 21, Node (project-local `frontend/node_modules`), no Docker, **no Ollama** during the default cycle.
 
@@ -8,10 +8,10 @@
 
 | Suite | Command | Executed | Passed | Failed | Skipped |
 |---|---|---:|---:|---:|---:|
-| Backend (Maven) | `cd backend && ./mvnw verify` | **58** | **58** | **0** | **0** |
+| Backend (Maven) | `cd backend && ./mvnw verify` | **63** | **63** | **0** | **0** |
 | Frontend lint | `cd frontend && npm run lint` | — | **Pass** | **0** | — |
 | Frontend types | `cd frontend && npm run typecheck` | — | **Pass** | **0** | — |
-| Frontend unit/component | `cd frontend && npm run test` | **12** | **12** | **0** | **0** |
+| Frontend unit/component | `cd frontend && npm run test` | **13** | **13** | **0** | **0** |
 | Frontend production build | `cd frontend && npm run build` | — | **Pass** | **0** | — |
 | RAG evaluation (Ollama) | *Not in default build* | **0** | **0** | **0** | **N/A (not run)** |
 
@@ -80,19 +80,20 @@
 
 | Item | Value |
 |---|---|
-| **Command** | `cd backend && ./mvnw test -Dtest=RetrievalServiceTest,CitationValidatorTest,CitationSnippetsTest,TicketIdExtractorTest,AskServiceTest` |
-| **Executed** | 12 |
-| **Passed** | 12 |
+| **Command** | `cd backend && ./mvnw test -Dtest=RetrievalServiceTest,CitationValidatorTest,CitationSnippetsTest,TicketIdExtractorTest,AskServiceTest,IndexReadinessTest` |
+| **Executed** | 17 |
+| **Passed** | 17 |
 | **Failed** | 0 |
 | **Skipped** | 0 |
 
 | Test class | Focus | AI |
 |---|---|---|
-| `RetrievalServiceTest` (4) | Threshold, top-K, named ticket bypass, missing id | Fake store scores; **no** embedding call |
-| `CitationValidatorTest` (3) | Invented id, no citation, valid citation | N/A |
+| `RetrievalServiceTest` (5) | Threshold, top-K, named ticket bypass, missing id, skip similarity when named ids absent | Fake store scores; **no** embedding call |
+| `CitationValidatorTest` (4) | Invented id, bare id in prose, no citation, valid citation | N/A |
+| `IndexReadinessTest` (2) | Pending/failed gates readiness | N/A |
 | `CitationSnippetsTest` (2) | Snippet selection/truncation | N/A |
 | `TicketIdExtractorTest` (1) | `TKT-\d+` in questions | N/A |
-| `AskServiceTest` (2) | Empty retrieval → no LLM; citation reject → fail-closed | **Mocked** `ChatModel` |
+| `AskServiceTest` (2) | Empty retrieval → no LLM; citation reject → `AnswerNotVerifiedException` | **Mocked** `ChatModel` |
 
 **Covers (partial):** UT-RET-01/02/04, FR-13 AC2/AC3 deterministic paths, FR-14 empty retrieval.
 
@@ -176,7 +177,7 @@
 |---|---|
 | Grounded answer with citations | **Scripted** chat model |
 | Irrelevant / empty index → no-match, no chat | Fake embed retrieval only |
-| Invalid / uncited model output → fail-closed | Scripted bad answers |
+| Invalid / uncited model output → 502 `ANSWER_NOT_VERIFIED` | Scripted bad answers |
 | Blank / overlong question → 400 | Chat **not** called |
 | Index not ready → 503 | Chat **not** called |
 
@@ -203,8 +204,8 @@
 | Item | Value |
 |---|---|
 | **Command** | `cd backend && ./mvnw verify` |
-| **Executed** | **58** (all Surefire tests) |
-| **Passed** | **58** |
+| **Executed** | **63** (all Surefire tests) |
+| **Passed** | **63** |
 | **Failed** | 0 |
 | **Skipped** | 0 |
 
@@ -226,15 +227,15 @@
 | Item | Value |
 |---|---|
 | **Command** | `cd frontend && npm run test` |
-| **Executed** | 12 |
-| **Passed** | 12 |
+| **Executed** | 13 |
+| **Passed** | 13 |
 | **Failed** | 0 |
 | **Skipped** | 0 |
 
 | File | Group | Notes |
 |---|---|---|
 | `lib/api/client.test.ts` | API integration (mocked `fetch`) | Error parsing, network failure |
-| `lib/api/errors.test.ts` | Error handling | Banner mapping for network / 503 |
+| `lib/api/errors.test.ts` | Error handling | Network / 503 / 502 `ANSWER_NOT_VERIFIED` |
 | `lib/validation.test.ts` | Validation | Limits, no-match sentence, field errors |
 | `lib/navigation.test.ts` | Citation navigation | Ticket detail paths from citation ids only |
 | `components/ui/ErrorBanner.test.tsx` | Component | Error presentation |
@@ -274,7 +275,35 @@ Per `spec/test-strategy.md` §4 and `spec/evaluation-strategy.md`, the following
 
 ## Gap summary vs `spec/test-strategy.md`
 
-The default automated gate is **green** (`58` backend + `12` frontend tests). Substantial strategy IDs remain **unimplemented or only partially covered**, including:
+### OpenAPI parity
+
+| Item | Value |
+|---|---|
+| **Command** | `cd backend && ./mvnw test -Dtest=OpenApiParityTest` |
+| **Executed** | 1 |
+| **Passed** | 1 |
+
+Asserts `/v3/api-docs` contains contract paths from `spec/api-contract.md` and `spec/rag-api-contract.md`.
+
+---
+
+## Review-fix verification (2026-11-18 afternoon)
+
+After `docs/final-review.md` remediation:
+
+| Finding | Regression test |
+|---|---|
+| H-1 `ANSWER_NOT_VERIFIED` | `AskApiIntegrationTest`, `AskServiceTest`, `errors.test.ts` |
+| H-2 bare `TKT-n` in prose | `CitationValidatorTest.rejectsBareInventedTicketIdInProse` |
+| H-3 missing named id | `RetrievalServiceTest.skipsSimilarityWhenNamedIdsDoNotExist` |
+| H-4 failed ingestion blocks ask | `IndexReadinessTest` |
+| H-5 OpenAPI | `OpenApiParityTest` |
+
+Command: `cd backend && ./mvnw verify` → **63/63** on macOS Java 21 (this report).
+
+---
+
+The default automated gate is **green** (**63** backend + **13** frontend tests). Substantial strategy IDs remain **unimplemented or only partially covered**, including:
 
 - UT-TS-* (TicketService with Mockito fakes)
 - UT-ST-02–06, UT-CM-01–06 (dedicated service unit suites)
