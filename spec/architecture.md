@@ -117,7 +117,7 @@ Next.js with the App Router, React, and TypeScript (AD-09). The frontend is a cl
 
 | Concern | Decision |
 |---|---|
-| Routes | `/tickets` (list, search, status filter, pagination), `/tickets/new`, `/tickets/[ticketId]` (details, edit, comments, status change), `/ask`. Screen detail belongs in `spec/ui-flow.md`. |
+| Routes | `/tickets` (list, search, status filter, pagination), `/tickets/new`, `/tickets/[ticketId]` (details, edit, comments, status change). The assistant is a drawer on these screens, not its own route. Screen detail is in `spec/ui-flow.md`. |
 | Data access | One small API client module wraps `fetch`. Components do not call `fetch` directly. |
 | State | Component state and the URL (search term, status filter, page). No global state library. |
 | Errors | The API client turns every failure (validation, not found, conflict, network, server, AI unavailable) into a typed error. Components render each type with its own message (FR-11). Form values are kept on error (FR-11 AC5). |

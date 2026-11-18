@@ -3624,3 +3624,375 @@ In `spec/architecture.md`, the old ordering (delete old chunks before the databa
 ## Open items
 - **Assignee name:** I propose rejecting the assignee name `UNASSIGNED` as reserved, because it collides with the metadata value for no assignee. This needs your decision and then a line in `spec/api-contract.md`.
 - **Spec still empty:** `spec/ui-flow.md` and `spec/test-strategy.md` are still placeholders.
+
+---
+
+_**User**_
+
+Create UI and overall testing specifications
+
+Create:
+
+spec/ui-flow.md
+
+spec/test-strategy.md
+
+ui-flow.md
+
+Document the user journey for:
+
+Ticket list.
+
+Ticket creation.
+
+Ticket details.
+
+Editing tickets.
+
+Changing status.
+
+Adding comments.
+
+Searching and filtering.
+
+AI Assistant drawer.
+
+Displaying AI answers.
+
+Displaying ticket citations.
+
+No relevant tickets found.
+
+API and validation errors.
+
+test-strategy.md
+
+Define testing at three levels.
+
+Unit tests:
+
+TicketService.
+
+Ticket validation.
+
+State transition service.
+
+Comment service.
+
+RAG ingestion.
+
+Retrieval service.
+
+Integration tests:
+
+REST APIs.
+
+Database persistence.
+
+Valid state transitions.
+
+Invalid state transitions.
+
+Automatic re-ingestion.
+
+Restart persistence.
+
+RAG evaluation tests:
+
+Relevant ticket retrieval.
+
+Similar ticket retrieval.
+
+Correct citations.
+
+No-match fallback.
+
+Unsupported-answer rejection.
+
+Stale embedding detection.
+
+Map each acceptance criterion to one or more test scenarios.
+
+Do not implement the frontend or backend.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The user wants me to create two specification documents: spec/ui-flow.md and spec/test-strategy.md based on the existing requirements, architecture, API contracts, state machine, RAG specs, and evaluation strategy.
+
+Reviewing existing specs to ensure consistency with routes, error codes, and status transitions. The AI Assistant will be a drawer rather than a separate `/ask` page.
+
+The AI Assistant drawer will be documented as the primary interface, with the earlier `/ask` route noted as an obsolete architecture artifact. The document will reference prior specifications to maintain consistency.
+
+The architecture route table will be updated to remove the obsolete `/ask` entry and align with the drawer-based design. The UI flow document will detail the ticket list, creation, detail, editing, status changes, comments, search, filtering, and the AI Assistant drawer. The UNASSIGNED assignee validation rule will be included in the UI flow.
+
+The API contract does not yet include UNASSIGNED as a valid assignee value. I will skip adding a UI validation rule for this reserved word to avoid contradicting the API contract. This remains an open item pending resolution.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+The UI and test specs have to match the routes, error codes, and acceptance criteria already written. I’ll pull those out and then write both documents.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "^- AC|### FR-|### RAG-|- RAG-|- NFR-"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "^- AC|### FR-|### RAG-|- RAG-|- NFR-",
+  "topFiles": [
+    {
+      "matchCount": 147,
+      "uri": "spec/requirements.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 147
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/ui-flow.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'll write comprehensive but readable specs.
+
+The architecture route will show the AI assistant as a drawer rather than a dedicated /ask page.
+
+The UI flow document will cover purpose, information architecture, shared chrome, each user journey, error display, and assumptions. Screens include the ticket list, creation form, and detail view with editing, status changes, and comments. The AI assistant drawer will be component state rather than a route, so opening it does not change the URL.
+
+The AI assistant drawer will remain open when navigating between the ticket list and detail views so citation links can navigate without losing the answer.
+
+The ticket list will include columns, empty state, pagination, row clicks to details, and a create button.
+
+Ticket creation will cover form fields, submission, success navigation to the detail view, validation errors beside fields, and preserving values on failure.
+
+The ticket details view will display all fields, chronological comments, resolution notes, an unknown ID page, and allowed status transitions.
+
+Editing will support inline or edit mode with partial field updates and clearing the assignee.
+
+Terminal tickets will disable editing with an explanation; the backend still returns 409 if forced.
+
+Status changes will show only allowed next statuses as buttons. RESOLVED will prompt for notes. A 400 response will list the current and allowed statuses.
+
+Comments will append only. They will be author and content. Editing will be disabled on terminal tickets.
+
+Search and filter will use URL parameters for the query and status. This preserves shareable links and back-button behavior. A no-results state will be shown.
+
+The AI drawer will include a question box, loading state, answer display, and citation links. A no-match response will appear as information rather than an error. A 503 will be a distinct error. A 400 validation error will appear on the question field. The drawer will not create tickets.
+
+Citations will link to ticket detail pages and display snippets as plain text. The drawer will stay open when navigating via citations.
+
+Error handling will map API codes, network failures, and 500 responses. Forms will not clear on error. Raw JSON will never be shown to users.
+
+The test strategy will define three levels: unit, integration, and RAG evaluation. Each acceptance criterion will map to one or more test scenarios. Existing scenario IDs will be preserved where possible, with new ones prefixed as TS- or UI-.
+
+The acceptance criteria mapping will cover all functional requirements and RAG items. Test scenarios will use UT-* for unit, IT-* for integration, and EV-* for evaluation. Existing scenario IDs will be reused to avoid duplicates. The test strategy document will open with a purpose section and the three test levels.
+
+Unit tests will be organized by component with concrete scenarios. Integration tests will cover REST APIs, database persistence, valid and invalid state transitions, and automatic re-ingestion. RAG evaluation tests will map to the six named criteria and point to the evaluation strategy. The document will distinguish deterministic tests from threshold-based ones. A traceability table will link every acceptance criterion to its test scenarios. Docker will be excluded from the default test scope. Restart persistence will be verified through an integration test that writes data, stops the Spring context, restarts it on the same file, and reads back the data.
+
+The vector index will be empty until rebuild, so the first AI query returns 503 before ingestion completes while ticket data remains available immediately.
+
+Automatic re-ingestion will be tested by creating, updating, commenting, or changing status and asserting that chunks appear without a separate ingest call.
+
+Stale embedding detection will verify that old status is not retrieved after an update. Existing integration scenarios ING-06, ING-17, and S-01 will cover this. The evaluation level can also validate real model metadata.
+
+A deterministic integration or unit check will gate stale embedding detection. An evaluation check will verify that retrieved metadata matches the current database after an update.
+
+Unsupported-answer rejection will map to PI-D1, the citation validator, and G-08.
+
+The comment form will use the API field `content` with the label "Comment". The author field will be free text and required. No logged-in user is assumed.
+
+The comment form will remember the last author in session storage so the agent does not retype it. This is documented as UI-A1.
+
+The traceability table will be compact, listing each acceptance criterion alongside its scenario IDs and test level.
+
+All functional requirements and RAG items will be mapped, including FR-01 through FR-14 and RAG-01 through RAG-17.
+
+UI acceptance criteria will be covered by component tests and a manual checklist rather than a fourth test level. This keeps the strategy aligned with the user's three-level requirement while still mapping criteria like FR-11 and FR-01 AC5 to concrete checks.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+The architecture still lists a separate `/ask` page. The assistant will be a drawer instead, and I’ll record that in the UI spec and in the architecture so the two don’t disagree.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/ui-flow.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Now write test-strategy.md with three levels and full AC mapping.
+
+Keep the document thorough but avoid duplicating the full evaluation strategy.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Verify no java files and the architecture route was updated.
+
+Checking acceptance criterion coverage for all functional requirements and RAG items.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "glob": "spec/*.md",
+  "outputMode": "content",
+  "pattern": "/ask"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "pattern": "/ask",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "./spec/test-strategy.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "./spec/ui-flow.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "./spec/requirements.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "./spec/rag-api-contract.md"
+    }
+  ],
+  "totalFiles": 4,
+  "totalMatches": 11
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2; wc -l spec/ui-flow.md spec/test-strategy.md; find . -type f \( -name &#39;*.java&#39; -o -name pom.xml -o -name package.json \) | wc -l</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2; wc -l spec/ui-flow.md spec/test-strategy.md; find . -type f \( -name '*.java' -o -name pom.xml -o -name package.json \) | wc -l
+```
+
+```
+     222 spec/ui-flow.md
+     296 spec/test-strategy.md
+     518 total
+       0
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+Architecture route was updated so /ask page shouldn't remain.
+
+The /ask page was not found in the architecture file.
+
+No implementation will be performed. The UI flow and test strategy documents are being prepared.
+</details></think>
+
+_**Agent (auto-smart)**_
+
+I wrote `spec/ui-flow.md` and `spec/test-strategy.md`. No frontend or backend code was added.
+
+## UI flow
+
+The app has three routes: the ticket list, ticket creation, and ticket details. The assistant is a drawer on those screens, not its own page. I updated `spec/architecture.md` so it no longer lists `/ask`.
+
+Each journey you named is specified, including what the agent sees and which API call it triggers:
+
+- The list shows the required columns, keeps search, filter, and page in the URL, and has empty and no-results states.
+- Creation has no status or id field. A success opens the new ticket. A 400 leaves the typed text in place and shows the backend message under the field.
+- Details, edit, status, and comments live on one page. Closed and cancelled tickets disable edit and comment. Status actions offer only the legal next step, and Resolve asks for notes before sending.
+- The drawer sends `POST /api/ai/ask`. A grounded answer shows its citations as links to the ticket, and the drawer stays open after the link is followed. `No relevant tickets found.` is shown as information, not as an error.
+- HTTP 400, 404, 409, 503, network failure, and 500 each have their own message. The raw response is never shown.
+
+## Test strategy
+
+| Level | What it covers | When it runs |
+|---|---|---|
+| Unit | TicketService, validation, the state machine, comments, ingestion, retrieval | Every build, with fakes and no Docker |
+| Integration | The REST API, the database, valid and invalid transitions, automatic re-ingestion, restart | Every build, with in-memory H2 and fake models |
+| RAG evaluation | Relevant and similar retrieval, citations, the no-match body, unsupported answers, stale embeddings | On demand, against the golden dataset in `spec/evaluation-strategy.md` |
+
+Invalid transitions are HTTP 400. A lost race between two valid transitions is HTTP 409. Stale embeddings are gated by an integration test that checks only the new version is returned after an update. The evaluation suite repeats that case with the real embedding model.
+
+Section 5 maps every functional acceptance criterion (FR-01 through FR-14) and every RAG requirement (RAG-01 through RAG-17) to at least one scenario.
