@@ -3996,3 +3996,1686 @@ Each journey you named is specified, including what the agent sees and which API
 Invalid transitions are HTTP 400. A lost race between two valid transitions is HTTP 409. Stale embeddings are gated by an integration test that checks only the new version is returned after an update. The evaluation suite repeats that case with the real embedding model.
 
 Section 5 maps every functional acceptance criterion (FR-01 through FR-14) and every RAG requirement (RAG-01 through RAG-17) to at least one scenario.
+
+---
+
+_**User**_
+
+Perform cross-specification review
+
+Before implementation, perform a complete specification review.
+
+Read every file under spec/ and compare it with the original assignment requirements.
+
+Check for:
+
+Missing acceptance criteria.
+
+Contradictory requirements.
+
+Inconsistent entity fields.
+
+API contract and data-model mismatches.
+
+State-machine inconsistencies.
+
+Missing RAG metadata.
+
+Missing re-ingestion scenarios.
+
+Unclear chunking rules.
+
+Incomplete grounding requirements.
+
+Missing negative test cases.
+
+Unsupported architectural assumptions.
+
+Missing persistence requirements.
+
+Pay particular attention to whether the API contract, architecture and RAG specifications agree.
+
+Create docs/spec-review.md.
+
+For each issue:
+
+Identify the affected specification.
+
+Explain the problem.
+
+Explain the impact.
+
+Propose a correction.
+
+Do not silently change approved specifications.
+
+Present the findings and proposed changes before applying corrections.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I need to read every spec file and compare them for real inconsistencies. The review doc, docs/spec-review.md, is something I'm allowed to create, but I'm not touching the specs themselves. Findings get presented before any corrections, so I'll write the review, summarize it, and ask for approval first.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+I'll read every spec file in full and the original assignment PDF, then check them against each other. I won't change any specification, only create the review document.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/data-model.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/api-contract.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/state-machine.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-api-contract.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/evaluation-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/ui-flow.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/.cursor/projects/Users-arpitdubey-codebase-ticket-management-system-c2/attachments/883f4ebc-b4b1-4697-88ef-4497a02df97c/Requirement.pdf</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm going through the requirements and the API contract to catch real inconsistencies. First candidate: FR-06 calls the comment body `text`, while the API and data model call it `content`.
+
+I'm checking the API's PUT behavior against the api-standards rule, which says PUT should replace and PATCH should partially update. The contract uses PUT for partial updates, so I'm weighing whether to keep PUT and document the exception or allow PATCH as well.
+
+I'm now looking at the status endpoint, which is a reasonable addition since FR-05 doesn't name one. The bigger question is optimistic locking: the state machine expects both requests to carry the same version, but the API neither accepts a version nor exposes one on the ticket. So I'm checking whether the 409 can only come from a true concurrent race, since a sequential second request would just get rejected on its current status.
+
+I'm now checking the concurrency picture, since the state machine expects both requests to carry the same version but the API has no way for a client to send one. A truly concurrent pair would produce a 409 from the optimistic lock, while a sequential second request would just fail as an invalid transition, so the test needs real parallel requests to hit that path.
+
+I'm checking whether a PUT racing another PUT gets a 409, which the PUT response table doesn't list. I also see that comment adds forcing a version increment on the ticket row would make two valid concurrent comments collide, so one gets a 409 that shouldn't happen.
+
+I'm checking the comment-concurrency issue further: if comment adds force a version increment on the ticket row, two valid concurrent comments could collide and one would get a 409 it shouldn't. I'm weighing whether to make that increment an atomic database-side update, or to let the server retry once. I'm also comparing the data model's sort index, which uses a numeric id, against the API's ticketId ordering.
+
+I'm checking the remaining error-code list against the rag contract, which adds a code the main API table doesn't have, so the two should be merged into one table.
+
+I'm now checking the error-handling details, including whether the 400 for malformed JSON and the standard error body from the API rules are consistent. Next I'm looking at the `assignee` field: the reserved value `UNASSIGNED` isn't covered in the API contract, validation rules, or test strategy, so that's an open item. I also want to confirm how an empty-string assignee should behave on PUT, since the create case rejects it but the update case isn't stated explicitly.
+
+The assignee handling is the next thing to sort out: the UI says clearing sends null and the create form says an empty value means unassigned, but the API rejects `""` with a 400. So the UI has to convert empty input to null or omit the field. I'm also noticing that the UI-flow doc hardcodes the allowed status transitions, even though the architecture says the UI holds no business rules. I think the API should return an `allowedTransitions` array so the client doesn't duplicate that logic.
+
+I'm checking the rest of the ticket-detail response, and the ticket object seems to cover every field in section 3. I'm also noting that resolution notes are only meaningful on the resolve transition, so I'm confirming they're trimmed when stored. Next I'm looking at the state machine's HTTP 400 reasoning, which looks consistent with FR-05.
+
+I'm checking the state machine against the data model's constraint on resolution notes, which requires them to be present for RESOLVED and CLOSED and absent otherwise. A single update that changes status and notes together satisfies that. I'm also confirming that comments on RESOLVED tickets don't conflict with the immutability of the notes.
+
+I'm checking the state machine's rejection behavior, including whether a CLOSED→CLOSED request returns 400 INVALID_TRANSITION as expected. I'm also weighing which error wins when an OPEN→RESOLVED request is missing notes, since the check order is undefined; I'll flag that as a low-priority review item.
+
+I'm checking the RAG citation-failure case now, where the contract returns a no-match body with grounded set to false. That would tell the user no relevant tickets were found even though retrieval succeeded and only the model's citations failed, which conflicts with the no-qualifying-context definition in FR-14 and the distinction FR-11 requires.
+
+I'm weighing the citation-failure case: if the model's citations are rejected, the contract still returns the no-match body, which would tell the user nothing relevant exists even though retrieval found tickets. I'm considering a distinct response instead, either an error or a 200 with a different answer, since the current design hides a model failure.
+
+I'm weighing whether citation failures should still return the no-match body, since that would tell the user nothing relevant exists when retrieval actually found tickets. I'm considering a distinct error such as 502 `ANSWER_NOT_VERIFIED` instead, with a retry option, though that's a design choice for the user to decide.
+
+I'm now checking whether the citation snippet rule holds up for direct-lookup chunks, since those have no relevance score to pick the highest-scoring chunk from. I also want to confirm that the citations list matches the ticket IDs in the answer, which it should by construction, and that the snippet is only omitted when no chunk text exists. The open question is which chunk to use when nothing is scored.
+
+I'm checking whether direct lookups by ticket ID can run through the same vector search, since that would need a metadata filter and a similarity query. A ticket with many chunks could also exceed the 6000-character context limit, so I'm looking at how the trimming order handles that.
+
+I'm checking whether the metadata attached to each vector document covers what the contract needs, and the ticket fields listed in the assignment look complete. I'm also noting that comment chunks carry the author only in their header, which is fine since the citation snippet doesn't depend on it. Next I'm considering whether the direct-lookup path needs a cap on chunks per ticket and on how many named ticket IDs one question can pull in.
+
+I'm checking the metadata definitions next: the contentHash is described as a hash of the chunk's "source text" in one place and as a SHA-256 of the body text in another, and "source text" could mean the whole document or just the chunk, so that's a small ambiguity to note. I'm also reviewing the chunking rules, where the paragraph-packing cap in the architecture doc doesn't quite match the ingestion doc's tail-merge allowance that lets the final chunk exceed the max-chars limit.
+
+I'm looking at the chunk size rules, where the ingestion doc allows a tail merge up to 1.2 times the cap, which conflicts with the no-chunk-over-the-cap requirement. I'm also noting that the header sits outside the body cap, so the embedded text can run well past the body limit, though it still fits the token budget. Finally, sentence boundaries aren't defined anywhere, so I'm considering spelling out which punctuation ends a sentence.
+
+I'm checking how the chunker handles long logs: paragraph splitting would fail on a stack trace with only single newlines, so I'm considering a line-based split between paragraphs and sentences. I'm also confirming that the 5000-character description still lands at about four chunks under the 1500-character cap.
+
+I'm checking whether the retrieval ranking accounts for priority at all, since priority isn't part of the embedded text and only shows up in the prompt after chunks are already selected. That means a question asking for high-priority payment tickets could surface low-priority matches while missing the ones that actually fit.
+
+I'm checking whether metadata-constrained questions like "high-priority payment tickets" can be answered reliably, since priority isn't in the embedded text and only shows up after retrieval has already picked the chunks. I'm considering a lightweight deterministic filter that parses priority or status from the question, and I'll flag the current gap as a risk with that as the proposed fix.
+
+I'm checking whether the grounding requirement can actually be enforced, since FR-13 asks that every factual statement carry a citation but the validator only checks for at least one valid citation. Uncited sentences are only caught by the evaluation threshold, so acceptance criterion 5 has no deterministic test behind it.
+
+I'm checking whether the grounding validator catches bare ticket IDs written in prose without brackets, since the evaluation expects any invented TKT number to be flagged but the validator only parses bracketed markers.
+
+I'm checking the grounding validator against the evaluation section, which says any invented TKT number in an answer should be caught deterministically. The architecture only parses bracketed `[ticket:<id>]` markers, so a bare ticket ID written in plain prose would slip past, and that claim isn't supported yet. I also need to pin down what "retrieved set" means: tickets whose chunks actually reached the prompt after trimming, since a ticket cut by the context cap couldn't have been cited legitimately.
+
+I'm checking whether the grounding validator would catch an invented ticket ID written in plain prose, since it only parses bracketed markers right now. I also need to decide what counts as the retrieved set, and whether a ticket trimmed from the prompt can legitimately be cited. Prompt injection is another concern: ticket text containing the context delimiter could break out of the block, so I'm weighing a per-request delimiter or escaping, and I'm noting that the answer format has no place to mark assumptions.
+
+I'm now checking whether the grounding validator's "grounded" flag overpromises, since it only confirms that citations point to retrieved tickets and not that each statement is actually supported. I'm also looking at how the no-match decision interacts with what the model itself says about the context.
+
+I'm weighing whether the model's own "doesn't answer the question" reply gets handled properly: a clean "no answer" signal should map to the no-match response, while a missing or invalid citation should fail closed as ungrounded. Right now both would collapse into the same outcome, so I'm considering a structured output where the model either gives a cited answer or returns an explicit no-answer token.
+
+I'm checking the re-ingestion scenarios next, and a ticket changed during the startup backfill with a version bump looks covered. I'm also confirming that an update arriving mid-window is handled by the existing visibility tests, since S-01 only covers the settled state.
+
+I'm now going through the remaining re-ingestion cases, which look mostly covered: the close and cancel transitions fall under the generic valid-transition test, and rejected updates are handled by SM-19 and IT-RE-02. I'm also noting a few gaps, like a model that returns the wrong embedding dimension or an empty vector, and a ticket with a very large comment count that I still need to check for chunk volume.
+
+I'm noting that comments are unbounded, so chunk count and ingestion time per ticket could grow without limit, and I'm weighing a cap on comments per ticket or at least documenting the gap. I'm also checking that the startup reconciliation and concurrent writes are covered by the queueing behavior, and that the re-ingestion on restart with a NULL indexed version is handled. Next I'm turning to whether the ingestion data in the data model and the ingestion steps agree on what the INDEXED status means.
+
+I'm noticing the ingestion docs disagree about retries: the architecture says the worker picks up PENDING or retryable FAILED rows, but the data model treats FAILED as terminal once attempts run out. That makes the retry path contradictory, so I'm leaning toward having the worker take only due PENDING rows.
+
+I'm checking whether the readiness gate works: it says no row from the startup run can still be PENDING, but the data model has no column marking which rows belong to that run, so the check would have to live in memory. I'm also noting that reconciliation doesn't say what happens to `requested_at`.
+
+I'm noticing the reconciliation step leaves `requested_at` alone, so after a restart every row would carry a stale timestamp and the oldest-pending age metric would show days instead of the actual wait. Setting `requested_at` to now during reconciliation looks like the fix.
+
+I'm checking the visibility rule next: the store only exposes a ticket once its `indexed_version` matches the ingest version, and I want to confirm what happens right after a worker succeeds with the version still unsettled.
+
+I'm checking the ticket ID normalization, where a lowercase `tkt-1001` should map to `TKT-1001`, and wondering whether leading-zero variants matter. Next I'm comparing the architecture's CORS setup against the API and noting that the AD-09 decision is still unconfirmed, even though the UI spec already assumes it.
+
+I'm checking the vector store assumptions next, since the cosine score from SimpleVectorStore ranges from -1 to 1 rather than 0 to 1. That means the spec's claim about the threshold range is unsupported, even though a 0 to 1 threshold validation could still work for typical embeddings.
+
+I'm now checking the vector score assumptions: nomic cosine similarities for unrelated text often sit around 0.4 to 0.5, so a 0.5 threshold might let almost everything through and I should treat it as a risk to evaluate rather than a settled value.
+
+I'm checking the case-insensitive search across the four sources, which joins to comments, and the performance looks fine. I also want to confirm the H2 LIKE escaping, since "matched literally" needs an explicit ESCAPE clause.
+
+I'm now checking the remaining assumptions in the architecture: that the ingestion worker can run alongside `@Scheduled` jobs and still wake after each commit, the readiness wait while the nomic model is pulled on first startup, and whether a small model will reliably produce the citation format the ChatClient setup depends on.
+
+I'm checking the persistence requirements next, specifically whether FR-09's acceptance criteria cover the ingestion state as well as tickets, comments, statuses, and resolution notes.
+
+I'm checking whether the persistence setup keeps the public ID sequence intact across a restart, so a restart won't reuse or duplicate IDs, and I'm noting that this isn't covered by the current restart test. I'm also noticing the repo has no root .gitignore even though the architecture says the database files should be excluded from source control, which is a gap in the setup rather than in the spec itself.
+
+I'm checking the remaining persistence gaps: the data directory needs to be gitignored, since the repo has no root .gitignore yet. I'm also confirming the requirement-to-test mapping, and the RAG ingestion criterion about embedding tickets into the vector store only has indirect coverage through RAG-01 to RAG-03.
+
+I'm now going through the assignment's artefacts beyond the spec, since the steering command files and skills are still placeholders. I'm also noting that my prompt history has only one entry and the AI mistakes log is empty, even though I've made errors, like the 409 versus 400 status mix-up, that should be recorded.
+
+I'm now weighing the prompt-caching requirement against how Ollama actually handles repeated prompt prefixes, since local KV reuse may happen automatically while cloud providers would need explicit caching.
+
+I'm now looking at the UI test IDs in the test strategy, since UI-01 through UI-20 get referenced but never defined in a checks table, so they only exist as inline descriptions in the map.
+
+I'm checking whether the test strategy defines the citation validator and the ask service anywhere in its unit-test sections, since the sections cover ticket, validation, state, comment, ingestion and retrieval but not those, and a few scenario IDs like the citation-builder test are referenced without being defined.
+
+I'm looking at where the evaluation checks are defined, and the unit tests don't cover AskService, CitationValidator, or PromptBuilder, even though the map points to them. I also want to confirm that the "ask writes no ticket row" scenario in FR-12 has a matching integration case, and that the UT-VAL-07 numbering and the citation precision mapping under FR-13 are consistent.
+
+I'm now checking for missing negative tests, starting with whether a PUT that carries no editable field returns a 400, since the integration list doesn't seem to cover that case. I'm also noting that the "400" reference in IT-API-03 is cut short, so I'll confirm what it actually asserts.
+
+I'm now checking the negative cases the API should cover: a PUT with no editable field should be rejected without changing anything, and an unknown ticket ID or an oversized search query is already handled. I'm also noting that a malformed public ID in the path, and lowercase enum values like `open`, aren't specified anywhere, so their behavior is an open gap, along with what an out-of-range page number should return.
+
+I'm looking at the rest of the edge cases now: pagination past the last page, how large a request body can get, and whether `/ask` needs a concurrency cap since local Ollama can saturate on CPU. Then I'm checking the contradiction between FR-05 AC2 and FR-04 AC5.
+
+I'm now cross-checking the requirements against the rest of the spec. The comment field is called `text` in the requirements but `content` in the data model, and I'm confirming the search length limits, the pagination rules, and the comment-state rules. I'm also checking whether FR-12's "answered from that ticket's chunks" wording conflicts with the RAG-15a retrieval rule.
+
+I'm now checking whether the ask route's similarity search could pull in other tickets when a question names a specific ticket, since a resolution-phrase match on TKT-1002 could get cited and break the "TKT-1001 only" expectation in G-02. That also bears on whether FR-12's "that ticket's chunks" wording conflicts with RAG-15a's "in addition to similarity search."
+
+I'm weighing whether the ask route's similarity search could pull in other tickets when a question names a specific one, since "Show me tickets similar to TKT-1001" would need that, which makes the G-02 "TKT-1001 only" expectation and FR-12 AC4's "from that ticket's chunks" wording look inconsistent with RAG-15a. I'm leaning toward flagging this as a medium-severity inconsistency to resolve.
+
+I'm now comparing the steering rule's chunk metadata, like `sourceId` and `sourceType`, against the spec's `ticketId` and `kind`, and I'm noting that the rule says to delete a source's old chunks before inserting new ones, which contradicts the spec's add-before-delete approach.
+
+I'm checking the Cursor rule file against the spec, and it lists chunk metadata as `sourceId`, `sourceType`, and `title`, and tells the implementation to delete a source's old chunks before inserting new ones. That conflicts with the spec's add-before-delete approach and its different metadata keys, which would steer the build the wrong way, so I'm treating it as a high-priority fix before implementation starts.
+
+I'm checking the remaining rules against the spec, and the Java package naming and Testcontainers guidance line up. The API rule uses `{ticketId}` in its paths while the contract uses `{publicId}`, which is a minor naming mismatch to note.
+
+I'm going to re-read the RAG vector store rule so I can cite its exact wording rather than rely on memory. I'll check the testing, grounding, and Spring Boot rules too, and the docs folder for anything that bears on these gaps.
+
+I'm checking the architecture doc against the API contract, and the error table's citation-failure row and the request flow both line up with the RAG contract. The service name and the status endpoint also match. The one mismatch is the `app.rag.top-k` range, which the architecture lists as just a positive integer while ingestion caps it at 50, so I'll note it as a minor, low-priority gap.
+
+Next I'm checking the architecture doc for stale or broken references: the evaluation set is cited as "section 15," which is actually the security section, and the header still says the API contracts are "not yet written." I'm also noting that the requirements status reads "draft for review" even though the work is meant to be approved.
+
+Next I'm checking the architecture doc against the requirements: the architecture's `IndexReadiness` startup reconciliation matches the spec, and the ingestion handling of the title and category in embedded text lines up too. The NFR-PRF-04 three-second retrieval budget looks fine against the database visibility query. The one real gap is NFR-PRF-05, where the 60-second ask timeout has no matching UI behavior, since the user only sees a waiting message with no cancel option before the request fails with a 503.
+
+I'm now checking the UI flow against the API: a search term over 100 characters shouldn't be sent, and the create form's assignee handling is next to verify.
+
+I'm going through the UI flow against the API now, checking the assignee handling on create, since an empty value there means unassigned in the UI but gets rejected as a 400 by the API. The UI's `GET` on the ticket detail path matches the contract, and so does the list showing the updated time and the 409 page reload on status change. I also see that the UI flow points to section 13 for the error banner when the errors are actually in section 14, which is a minor cross-reference typo.
+
+I'm confirming the UI flow's section 3 reference, since the error banner is described in section 14 rather than 13, and I'm noting it as a minor cross-reference typo. The remaining UI points, like the drawer staying open across links and the citation markers, look fine and don't need changes.
+
+I'm checking the data model against the API next, and the main mappings hold: `ticketId` lines up with `public_id`, and the ticket's `createdAt` matches too. The comment object has no id, which fits the default for DQ-01, but the API contract doesn't say so explicitly, so I'll note that open question as resolved. The category and assignee length limits also agree with the database columns.
+
+I'm checking the data model against the API's list sorting, which orders by `updatedAt` and `ticketId` while the index is on `id`, and I'm confirming the status and priority defaults and the `createdAt` handling both match. I'm also noting that the requirement's `text` field is still `content` in the data model, and that the comments table has no count limit.
+
+I'm checking the data model's mappings and indexes against the API, and the ticket IDs, status and priority defaults, and the category and assignee limits all line up. The one remaining question is whether the RAG metadata (ticket ID, status, priority, assignee, category) is consistent across the ingestion section, the architecture, and the data model, and it is, though the Cursor rule file still disagrees with them. I'm also noticing the citation object doesn't carry the title, so the UI only links the ticket ID.
+
+I'm moving on to the evaluation strategy, where the 95% no-match target conflicts with the small number of negative examples, since a single miss would already drop below it. I also want to flag that the sample sizes are too small for the recall figures to mean much statistically.
+
+I'm checking the evaluation set against the RAG rules now. The negative-case target of 0.95 is hard to meet with only about seven negatives, since one miss already drops it below the line, and the small sample sizes make the recall figures weak statistically. I'm also verifying that the grader cases line up with the ticket data, and that G-05's must-cite list is acceptable even though it leaves out the CRITICAL ticket.
+
+I'm checking the evaluation plan's coverage minimums against the concrete scenarios, and they fall short: there are seven negative cases where the plan requires eight, and only one missing-detail case where it requires three. The other counts, like the injection cases and the ones naming an existing ticket, do line up.
+
+I'm checking the evaluation plan's coverage against the scenario list, and the anchor tickets TKT-1006, 1008 and 1010 are simply absent, which is fine for anchors. The plan leaves ID lookups out of scope, and it has no case where the answer lives only in a comment chunk, though S-02 covers a newly added comment.
+
+I'm now checking the evaluation plan's injection cases against the validator, and a model could still say a ticket is fixed while citing it correctly, which the code can't catch, so only the answer-level pass condition would flag that.
+
+I'm now checking the security side: the question text could carry customer data, and NFR-SEC-09 doesn't cover logging it, so I'm noting that as a gap along with missing rate limits and request size limits on the ask endpoint. Then I'm looking at observability, where the health endpoint required by NFR-OBS-04 has no path or response shape defined in the API contract.
+
+I'm now looking at the operational side: the health and metrics endpoints required by the observability requirements aren't defined in the API contract, and it's unclear how metrics get exposed. The test strategy also doesn't cover those observability counts, such as the failed-ingestion count.
+
+I'm now checking the evaluation seed data: if the golden set expects fixed IDs like TKT-1001 and a CLOSED ticket with a resolution, I need to see whether those can be created through the API, since that means walking each ticket through its state transitions, or whether the seeding has to happen directly in SQL or in a test fixture.
+
+I'm thinking about how the golden corpus gets loaded, since the evaluation expects fixed IDs like TKT-1001 and specific statuses, but the sequence assigns IDs automatically. I'm leaning toward a loader that creates tickets through the service layer in a fixed order on a fresh database and drives status transitions there. I'll note that as a gap, and also confirm the corpus reaches up to TKT-1025 without conflicting with the injection cases.
+
+I'm checking the project's setup status against the assessment's recommended sequence, since step 1 (git init and a root .gitignore) hasn't happened yet and the spec expects secrets and database files to stay out of source control. That's a blocker before implementation, though I should only recommend it rather than touch git config. I'm also comparing the specs against the Java steering rules, mainly the controller/DTO split, not calling the model inside a transaction, and the exception naming.
+
+I'm checking the API's input handling now: unknown fields get ignored as the contract allows, and the error responses use a message like "must not be blank" that matches the validation examples. I'm also confirming the create response includes a Location header, and that the HEAD and query-string variants of the ticket list endpoint are covered.
+
+I'm checking the publicId format next, since the spec doesn't say whether lookups are case-sensitive, and I'm confirming the search-and-status filter combination and the updatedAt field behave as the requirements describe. I'm also noting that the test strategy has no explicit case for the tiny-tail chunk merging rule, which would need one once the #28 fix is in.
+
+I'm checking the architecture's ingestion flow next, and the upsert of the ticket_ingestion row happening in the same transaction as the ticket write looks consistent. The one thing I'm weighing is whether the service layer writing the ingestion table through a repository is acceptable layering, and I think it is.
+
+I'm checking the retrieval path now: the candidate query returns each ticket's indexed version, and a worker update between the search and the filter step shouldn't break anything. I also want to confirm that startup reconciliation can't race the ask endpoint, since ticket writes stay allowed while only the ask path waits for readiness. Last, FR-12's "ticket does not exist" case could collide with similarity hits for TKT-9999, so I need to check what the no-match fallback actually requires.
+
+I'm weighing whether the evaluation's allowance for answering from a similar ticket (like TKT-1011) conflicts with FR-12 AC4, which says a missing ticket should get the no-match response. That reads as a real contradiction, so I'm leaning toward relaxing AC4 to match the evaluation, with the answer stating that the named ticket doesn't exist.
+
+I'm weighing a strict mode for named ticket IDs: if the question names a ticket that doesn't exist, I'd return no-match regardless of similarity hits, which would settle the FR-12 AC4 conflict and the N-05 expectation together. I'm also checking whether the similarity extras for named-ticket questions still hold up under that rule.
+
+I'm weighing a "named-only" mode for questions that name ticket IDs, where context comes only from those tickets' chunks, which would make the G-02 and N-05 checks deterministic. The catch is that a similarity query like "show tickets similar to TKT-1001" wouldn't find other tickets in that mode. I lean toward named-only, but I'm not settled on it yet.
+
+I'm weighing the named-ticket case next: if the question names a ticket that doesn't exist, I'd return the no-match response even when similar tickets come back, which resolves the FR-12 conflict. I'm also checking prompt size, since five chunks of up to about 1,800 characters each has to fit the context cap.
+
+I'm checking whether the context size cap of 6,000 characters fits five chunks plus the header and metadata, since that looks like it would often trim the last chunks. I'm also wondering whether Ollama's default context window would silently cut off the start of the prompt.
+
+I'm checking whether the Ollama chat model's context window is big enough for the grounding prompt. The system prompt, five chunks, and the question could overflow a small default `num_ctx`, and that would silently cut off the start of the prompt, including the grounding instructions. I think the spec should set `num_ctx` explicitly and add a budget check covering the system prompt, context, question, and answer tokens.
+
+I'm checking the Ollama context window next. The embedding options reference lists a default `num-ctx` of 2048, and I still need to confirm whether the chat options behave the same way. Embedding with nomic's 2K context looks consistent, and the architecture's note on that context size holds up. I'm also checking that each requirement ID in sections 4 to 6 maps to a test.
+
+I'm checking test coverage for the security-facing requirements now. Most requirements map to a test, but NFR-SEC-03 (escaping ticket text in the UI) has no XSS case, and there's no CORS or console-exposure test either. I'm leaning toward adding a security test group to cover those negative cases.
+
+I'm noting the remaining gaps in the security tests: there's no CORS rejection case, no check that the UI renders ticket text safely, and no check that the H2 console is off outside local profiles. I also want a negative case for a SQL-injection-style search string, since the current search test only covers the `%` and `_` characters. Finally, the FR-04 AC3 mapping to IT-API-03 needs a scenario that explicitly checks status and category changes are ignored on update.
+
+I'm checking whether the traceability mapping really covers what it claims. FR-05 AC2 asks for a message naming the allowed statuses, but IT-ST-01 only asserts the error code and that the ticket is unchanged. FR-01 AC3 points to IT-API-01, which never says the client's ticketId gets ignored, so the mapping overstates coverage in a few places and the scenarios need explicit expected outcomes.
+
+I'm going through the test mapping next, and a few traceability entries claim coverage that the scenario text doesn't actually spell out: FR-04 AC3, FR-01 AC3, FR-05 AC2's message content, and FR-10 AC3. FR-12 AC6 also points to a "no ticket row written" check that isn't defined as a scenario. The UI test IDs are referenced but never defined, and I still need to check whether the prompt builder, index readiness, and citation validator have unit tests.
+
+I'm now checking the remaining pieces: whether the test scenarios actually produce the expected results, and whether the architecture's ticket-ID format lines up with the requirements. I'll also look at the project rules and docs for anything that conflicts, then set out my findings in the review doc.
+
+I'm now settling on how to present the findings: grouped by category, each issue with an ID, severity, affected specs, the problem, its impact, and a proposed fix. I'll add a decision table for the items that need a call from the user, a short list of checks that passed, and a note that nothing is being changed until the review is approved.
+
+I'm planning the layout for the review findings: each issue gets an ID, severity, affected specs, the problem, its impact, and a proposed fix. Then I'll read the rule files and docs so I can cite them precisely.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+I've now read all ten specs and the assignment. Before writing the review, I'll re-check the five steering rules and the docs files against the specs, because those guide the implementation.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/rag-vector-store.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/ai-grounding.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/testing.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/api-standards.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2; for f in .cursor/commands/*.md .cursor/skills/documentation/SKILL.md docs/ai-mistakes.md docs/architecture-decisions.md docs/prompt-history.md README.md; do echo &#34;== $f ($(wc -l &lt; $f) lines)&#34;; done; ls -a | head -30</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2; for f in .cursor/commands/*.md .cursor/skills/documentation/SKILL.md docs/ai-mistakes.md docs/architecture-decisions.md docs/prompt-history.md README.md; do echo "== $f ($(wc -l < $f) lines)"; done; ls -a | head -30
+```
+
+```
+== .cursor/commands/generate-tests.md (       3 lines)
+== .cursor/commands/implementation-plan.md (       3 lines)
+== .cursor/commands/review-code.md (       3 lines)
+== .cursor/commands/review-rag-output.md (       3 lines)
+== .cursor/commands/review-spec.md (       3 lines)
+== .cursor/skills/documentation/SKILL.md (       9 lines)
+== docs/ai-mistakes.md (       3 lines)
+== docs/architecture-decisions.md (       3 lines)
+== docs/prompt-history.md (       7 lines)
+== README.md (       3 lines)
+.
+..
+.cursor
+.cursorindexingignore
+.git
+.idea
+.specstory
+.vscode
+README.md
+backend
+docs
+frontend
+spec
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The repo seems to be a git repo now, since a `.git` directory shows up, even though my earlier summary said it wasn't. There's no `.gitignore` in the listing, only `.cursorindexingignore`. The grounding rule checks out: when retrieval returns no chunks, it falls back without calling the chat model. The citation check doesn't mention failures, but that's consistent with the rule.
+
+I need to check a handful of the spec's claims against the code with greps before I assert any of them: the section references, the "(not yet written)" note, the batching and retry behavior, and the 1.2 figure.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Before I cite them, I'll verify a handful of specific claims with targeted searches.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "not yet written|section 15|batched|retryable FAILED|1\\.2 times|1\\.2×"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "not yet written|section 15|batched|retryable FAILED|1\\.2 times|1\\.2×",
+  "topFiles": [
+    {
+      "matchCount": 4,
+      "uri": "spec/architecture.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/rag-ingestion.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 5
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "glob": "{ui-flow,evaluation-strategy}.md",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "section 1[0-9]"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "section 1[0-9]",
+  "topFiles": [
+    {
+      "matchCount": 2,
+      "uri": "spec/ui-flow.md"
+    },
+    {
+      "matchCount": 5,
+      "uri": "spec/evaluation-strategy.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 7
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "\\btext\\b.*comment|comment.*\\btext\\b|author.*\\btext\\b"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "\\btext\\b.*comment|comment.*\\btext\\b|author.*\\btext\\b",
+  "topFiles": [
+    {
+      "matchCount": 6,
+      "uri": "spec/requirements.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 6
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "glob": "{api-contract,state-machine,ui-flow}.md",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "same version|OPTIMISTIC|optimistic|version"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "same version|OPTIMISTIC|optimistic|version",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": "spec/api-contract.md"
+    },
+    {
+      "matchCount": 9,
+      "uri": "spec/state-machine.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 12
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "0 to 1|0\\.0 to 1\\.0|cosine"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "0 to 1|0\\.0 to 1\\.0|cosine",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": "spec/architecture.md"
+    },
+    {
+      "matchCount": 2,
+      "uri": "spec/rag-ingestion.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 5
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "TKT-9999|only from that|that ticket's chunks|in addition"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "TKT-9999|only from that|that ticket's chunks|in addition",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "spec/test-strategy.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/architecture.md"
+    },
+    {
+      "matchCount": 5,
+      "uri": "spec/evaluation-strategy.md"
+    },
+    {
+      "matchCount": 3,
+      "uri": "spec/requirements.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/rag-api-contract.md"
+    }
+  ],
+  "totalFiles": 5,
+  "totalMatches": 11
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm checking which sections the evaluation-strategy document actually has, since "section 12" is cited at line 7 and line 97 but the table points to Sections 10 and 11, so I need to look at the headings to see what 12 refers to.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/evaluation-strategy.md",
+  "pattern": "^## "
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/evaluation-strategy.md",
+  "pattern": "^## ",
+  "topFiles": [
+    {
+      "matchCount": 13,
+      "uri": "spec/evaluation-strategy.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 13
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/ui-flow.md",
+  "pattern": "^## "
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/ui-flow.md",
+  "pattern": "^## ",
+  "topFiles": [
+    {
+      "matchCount": 15,
+      "uri": "spec/ui-flow.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 15
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md",
+  "pattern": "^## "
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md",
+  "pattern": "^## ",
+  "topFiles": [
+    {
+      "matchCount": 18,
+      "uri": "spec/architecture.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 18
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "DQ-"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "DQ-",
+  "topFiles": [
+    {
+      "matchCount": 3,
+      "uri": "spec/rag-ingestion.md"
+    },
+    {
+      "matchCount": 6,
+      "uri": "spec/data-model.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 9
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm checking the section cross-references. The eval's "section 12" for the baseline run points to Process, which is correct. Line 97 could fall under either §11 or §12, so I'll look at line 345 next.
+
+I'm dropping the line 345 check since the "section 11" reference there is fine. The error banner's "section 13" reference is wrong and should point to 14, which I've confirmed. Next I'll verify that the UI IDs like "UI-01" actually exist in the ui-flow and test-strategy docs.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "UI-\\d\\d|UI-A\\d|UT citation builder|IT with|IT-ST valid"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "UI-\\d\\d|UI-A\\d|UT citation builder|IT with|IT-ST valid",
+  "topFiles": [
+    {
+      "matchCount": 27,
+      "uri": "spec/test-strategy.md"
+    },
+    {
+      "matchCount": 5,
+      "uri": "spec/ui-flow.md"
+    }
+  ],
+  "totalFiles": 2,
+  "totalMatches": 32
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md",
+  "pattern": "^### 4\\.\\d|^## 4|^## 5|^## 3|^### 3\\.\\d"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md",
+  "pattern": "^### 4\\.\\d|^## 4|^## 5|^## 3|^### 3\\.\\d",
+  "topFiles": [
+    {
+      "matchCount": 9,
+      "uri": "spec/test-strategy.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 9
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "NFR-OBS-0[34]|health|metrics"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "NFR-OBS-0[34]|health|metrics",
+  "topFiles": [
+    {
+      "matchCount": 1,
+      "uri": "spec/test-strategy.md"
+    },
+    {
+      "matchCount": 7,
+      "uri": "spec/architecture.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/evaluation-strategy.md"
+    },
+    {
+      "matchCount": 4,
+      "uri": "spec/rag-ingestion.md"
+    },
+    {
+      "matchCount": 3,
+      "uri": "spec/requirements.md"
+    },
+    {
+      "matchCount": 6,
+      "uri": "spec/data-model.md"
+    }
+  ],
+  "totalFiles": 6,
+  "totalMatches": 22
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm noting that the readiness rule says IndexReadiness only turns ready once no startup-run row is still pending, and the architecture's 10.4 says FAILED sticks around after the max. That checks out. The UI-01 through UI-20 entries show up only in the map and have no definition table, which I've confirmed. Next I'll write up the document, aiming for about forty issues, grouped into cross-spec contradictions and then the remaining API items.
+
+I'm now writing the A section on cross-spec contradictions, starting with R-01: citation failures currently return the no-match body, which conflicts with the API contract, architecture, requirements FR-14, evaluation notes, and the grounding rule. I'm weighing a structured model outcome so a failed citation check returns a verification error instead, and I need to reconcile that with the earlier fail-closed design.
+
+Now I'm drafting the issue list, and the next point is R-05: the spec says retrieved text is delimited as data, but there's no rule for how delimiters inside that text get escaped, so injected delimiters could break the prompt structure.
+
+I'm checking whether the architecture's delimiter wording covers collisions, since I don't think it does, and I'll search for "delimit" to confirm. Next I'm weighing whether to add status and priority to the chunk header so questions that filter on them match better, or to treat that gap as a documented limitation.
+
+Now I'm going through the remaining spec contradictions: a few smaller points about metadata-constrained questions, snippets for direct-lookup chunks, and the `grounded` flag. Then I'm moving on to the API-to-data-model items, such as the comment field name, the list sort tiebreak, and how reserved and empty team values are handled.
+
+Now I'm checking the API contract for how out-of-range pages and malformed path IDs are handled, since I haven't found a rule for either yet. I'll also look at whether lowercase enum values are accepted, and note the PUT question about partial updates against the standards doc that says PUT replaces.
+
+I'm going through the remaining cross-spec items now: the PUT handling, since the standard says PUT replaces but the contract allows partial updates, and the order in which a transition without notes gets rejected. I'm also checking the status endpoint's precedence rules, then noting that the UI duplicates the transition table even though the architecture keeps business rules out of it. Last, I'm marking the missing health and metrics endpoints and the error catalog that is split across two contracts.
+
+Next I'm finishing the list of API-contract gaps, then turning to state machine and concurrency, where the optimistic locking has no client-supplied version so the "same version" wording in SM-17 has nothing to match against.
+
+Now I'm moving on to the ingestion and chunking issues, starting with the tiny-tail merge that can push a chunk past the size cap, and the unclear sentence boundaries and line-level splitting for logs and stack traces. I'm also looking at how unbounded comments per ticket could cause problems.
+
+I'm drafting the last items in the data-ingestion section: unbounded comments per ticket, which could mean unbounded chunks and ingestion cost with no cap, and I'm weighing options like capping embeddable comment chunks. I also want to flag a missing set of re-ingestion scenarios, such as a rolled-back write, a metadata-only change, a worker crash between steps, and reconciliation with FAILED, and I still need to grep the ING cases to confirm which are actually absent.
+
+I'm now checking whether the database path and H2 locking are actually specified anywhere, since the repo has a `.git` folder but no `.gitignore`, and I want to confirm there's no default DB location before flagging persistence and backup gaps.
+
+Next I'm moving on to the test and acceptance section, where I need to check the unit tests for the citation validator, prompt builder, ask service, and index readiness, since the citation builder has no defined unit test yet. I'm also noting the UI-01 through UI-20 entries have no definitions and that the map seems to claim more coverage than the tests actually back up.
+
+I'm checking the test strategy for IT-API-03 and the lines around 114–130 so I can cite the over-claimed acceptance criteria accurately. Next I'm flagging the missing negative-test list, the non-deterministic race and "ask right after start" designs, and the evaluation seed table that falls short of the minimum counts.
+
+Now I'm covering the unsupported assumptions: the open decisions that block implementation and need spikes first, the prompt caching claim that can't really be verified against Ollama, and whether the rag package reads the tickets table directly, which the architecture's dependency section doesn't say. Next I'm turning to process, where the steering file for the vector store appears to contradict the specs on metadata keys, delete-before-insert, and save/load.
+
+Now I'm covering the last stretch of the review: the cross-spec items on the steering files and the assignment artifacts, which still have placeholder content, and the stale references in the spec doc.
+
+I'm going to run a few checks across the docs: whether the delimiter and database path are specified, whether Docker Compose and Ollama startup are covered, which ingestion scenarios and API contract cases actually appear in the specs, and whether the architecture's layering and the open-decisions list line up.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "delimit|jdbc:h2|compose|\\.gitignore|num-ctx|num_ctx|context window|prompt cach"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "delimit|jdbc:h2|compose|\\.gitignore|num-ctx|num_ctx|context window|prompt cach",
+  "topFiles": [
+    {
+      "matchCount": 4,
+      "uri": "spec/architecture.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/evaluation-strategy.md"
+    },
+    {
+      "matchCount": 1,
+      "uri": "spec/requirements.md"
+    }
+  ],
+  "totalFiles": 3,
+  "totalMatches": 6
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": true,
+  "glob": "{rag-ingestion,test-strategy,api-contract}.md",
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "crash|rolled back|rollback|UNASSIGNED|CANCELLED|no comments|zero comments|during (the )?(backfill|rebuild)|lowercase|case-sensitive|beyond"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec",
+  "pattern": "crash|rolled back|rollback|UNASSIGNED|CANCELLED|no comments|zero comments|during (the )?(backfill|rebuild)|lowercase|case-sensitive|beyond",
+  "topFiles": [
+    {
+      "matchCount": 6,
+      "uri": "spec/test-strategy.md"
+    },
+    {
+      "matchCount": 10,
+      "uri": "spec/rag-ingestion.md"
+    },
+    {
+      "matchCount": 3,
+      "uri": "spec/api-contract.md"
+    }
+  ],
+  "totalFiles": 3,
+  "totalMatches": 19
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm checking the test case IT-ST-03, where a resolve without notes should return a 400 VALIDATION_ERROR when moving from IN_PROGRESS to RESOLVED. I'm also confirming that IT-ST-02 covers no new ingestion, and that IT-RS-02 is flaky, while IT-API-05 handles case-insensitivity and bad paging.
+
+I'm noting that the page-beyond-last case isn't specified, so I'll leave out-of-range paging alone while keeping the publicId format and enum casing in view. I also don't see a test for atomicity, where the ticket write and the ingestion request fail together if something breaks between them, and I want to check the ING-01 through ING-20 rows to confirm nothing covers the assignee, cancelled-ticket, or backfill-edit cases.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I've confirmed ING-16 holds: a permanently failing ticket doesn't block readiness. Next I'm checking which ingestion scenarios are still missing, such as cancelled or closed tickets, assignee clearing after re-ingest, atomicity of the ticket write, title edits that re-embed every chunk, and comments on resolved tickets.
+
+I'm now going through the remaining ingestion gaps: a ticket that is resolved with no chunk, an empty ticket that has only a description with no ING test covering it, tiny-tail merging, line-level splitting, a query-time model change, and a restart mid-backfill. I'm also noting that the Ollama model might not be pulled.
+
+I'm going through a list of specification issues now: citation validation gaps, prompt budget and delimiter problems, status and priority questions, and how snippets are chosen for direct lookups. I'm also noting the operational limits for the ask endpoint, then moving on to the data-model mismatches: comment field naming, sort tiebreaks, the reserved UNASSIGNED value, missing input rules, PUT semantics, transition-check order, duplicated UI logic, and the undefined health and metrics endpoints.
+
+I'm moving on to the open items: the error code catalogue split, the top-K range mismatch, and the entity field inconsistencies. Next I'm drafting the state-machine and concurrency findings, the ingestion chunking and comment-size issues, and the cosine range and content-hash definitions.
+
+I'm now working through the last group of persistence and infrastructure points, checking whether the specs say where the database file lives and whether it's excluded from version control. So far I can't find a default path or an ignore rule, only a general statement that data files shouldn't be committed.
+
+Next I'm checking the repository for a database file location and an ignore rule, and I've found there's no `.gitignore` even though there's a `.git` folder. The Ollama runtime also needs spelling out: nothing covers a compose setup, a model pull, or first-run network access. Then I'm turning to the test plan, where grounding components lack unit tests, the UI test IDs are undefined, the coverage map overstates what's covered, and negative tests are missing.
+
+I'm moving on to the evaluation and assumptions sections: a seed-based evaluation that may not meet its minimum sample size, open design decisions that need spikes first, and prompt caching. I also want to check whether the architecture says anything about the rag package depending on ticket persistence.
+
+Next I'm running one search through the architecture document to see whether the rag package has any dependency on ticket persistence.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm checking how the rag package fits the layering: it reads the `ticket_ingestion` records and the ticket snapshots, and the architecture says the ticket domain shouldn't depend on Spring AI. I still need to settle which direction the rag-to-repository or service dependency should go, since nothing states that rule yet.
+
+I'm still going through the dependency rules. The ingestion worker updating the same `ticket_ingestion` table that the request writer owns is shared table ownership across layers, which I'll note as acceptable. I also see the optimistic-locking scope differs slightly between the architecture section and the data model, but the version behavior for comments still fits. Next I'm listing the open decisions for the user, covering failure handling, ticket mode, version exposure, allowed transitions, priority filtering, the comment cap, UNASSIGNED reservation, and Docker.
+
+I'm now writing up the issues into the document, with the batch order and severity tally still to compute from the list.
+
+I'm numbering the findings by section now, starting with the first group: citation failure and named ticket mode, both high severity, then citation validation, prompt budget, and the open status and priority questions.
+
+I'm now going through the second batch of findings: the text and content rules, the sort order, how UNASSIGNED gets reserved, and the input validation, followed by the PUT behavior and the order of checks. Next come the UI transition table and the health and metrics gaps, then a few field and catalog inconsistencies.
+
+I'm tallying the findings by severity now: five high-severity items (R-01, R-02, R-03, R-19, R-39) and a set of low-severity ones, with the rest of the list still to count.
+
+I'm still tallying the severity counts: the medium count comes out to 24 after subtracting the high and low items. Before I settle the numbers, I want to check the over-claims in the IT-ST-03 sample, since I only saw FR-04 AC5 so far and need to confirm which acceptance criteria the map actually links, so I'll look at the hidden map lines.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm flagging a few overclaims in the traceability: FR-04 AC3 maps to IT-API-03, but that test doesn't actually check that forbidden fields get ignored, and FR-01 AC3 mapped to IT-API-01 isn't stated there at all. FR-10 AC4 looks fine, and FR-01 AC3 is probably covered by UT-TS-04 instead. FR-12 AC6 has no defined test, so I'm checking IT-ST-04 for it, and I'm now looking at what the test in IT-API-08 actually covers.
+
+I'm checking the IT-API-08 test's expected response: a 503 with a body that isn't the no-match message. The test-strategy table says unsupported answers are discarded and the no-match body is returned, which ties back to R-01. Now I'll write the document, keeping it accurate and fairly concise.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Verification is done. I'm writing the review document now and won't change any spec.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/docs/spec-review.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm double-checking a few claims from earlier: the Ollama embedding dimension I recalled from memory, and the spec reference I cited for IT-RS-01. One sentence in R-40 about pagination out-of-range references I made up, so I'm removing it.
+
+I'm checking the R-40 sentence I flagged and confirming the other items in that stretch are already verified. R-26 item 9 should be covered by the startup reconciliation, so it looks fine.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/docs/spec-review.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+I've written the review to `docs/spec-review.md`. It lists 42 issues. I changed no spec, rule or other file, as you asked, so nothing is applied until you approve.
+
+Each issue gives the affected spec, the problem, the impact and a proposed correction. There are 5 High, 24 Medium and 13 Low issues. I read every spec, the assignment PDF and the five rule files. I also searched the specs to confirm cross-references before citing them. I did not run any code or tests.
+
+**High-severity issues**
+- **R-01, answers reported as no-match:** a model answer that fails citation validation, or a model reply of "I don't know", currently returns "No relevant tickets found." That is false when relevant tickets were retrieved. It also mixes model failures into the no-match metrics.
+- **R-02, questions that name a ticket id:** FR-12 AC4, RAG-15a and evaluation case N-05 each describe different behavior. FR-12 AC4 says a nonexistent ticket gives no-match. N-05 accepts an answer citing a different ticket.
+- **R-03, citation validation:** the evaluation spec says bare invented ids like `TKT-9999` are rejected in code. The validator in `architecture.md` only parses `[ticket:<id>]` markers, so a bare invented id passes.
+- **R-19, optimistic locking:** no request or response carries a version, so a stale browser page is not protected. Two concurrent comments could also collide and return 409. SM-17 as written cannot be tested reliably.
+- **R-39, rule drift:** `.cursor/rules/rag-vector-store.mdc` says to delete a ticket's old chunks before inserting new ones. The approved design deliberately does the opposite, so a ticket never drops out of search. The rule also uses different metadata keys from the specs. It would steer implementation wrongly.
+
+**What passed**
+- Assignment coverage is complete.
+- The state machine is consistent across the specs.
+- The RAG metadata keys agree across the three specs.
+- The no-match body agrees everywhere. The issue is when it is used, not its shape.
+
+**Decisions I need from you (D-1 to D-8)**
+Section 10 of the review lists each one with a recommendation:
+- D-1: how to report an unverified model answer. I recommend a `NO_ANSWER` sentinel for no-match and an HTTP 502 `ANSWER_NOT_VERIFIED` error for failed validation.
+- D-2: how to handle questions that name a ticket id.
+- D-3: whether clients send a version (`ETag`/`If-Match`) so a stale page gets 409.
+- D-4: whether the ticket response includes the allowed next statuses.
+- D-5: how to support status and priority questions.
+- D-6: whether to cap comments per ticket.
+- D-7: whether to reserve the assignee name `UNASSIGNED`.
+- D-8: whether to add a Docker Compose file for Ollama.
+
+Section 11 groups the fixes into seven batches. I'd start with the editorial batch and the `docs/ai-mistakes.md` entries (batches 1 and 7), since neither needs your decisions.
+
+The workspace now has a `.git` folder but no `.gitignore`. The specs say data files must stay out of source control, so the repository needs a `.gitignore` before implementation starts (R-28).
+
+Tell me which decisions you accept and which batches to apply.
+
+---
+
+_**User**_
+
+Generate implementation plan and tasks
+
+All specifications have been reviewed.
+
+Read:
+
+spec/requirements.md
+
+spec/architecture.md
+
+spec/data-model.md
+
+spec/state-machine.md
+
+spec/api-contract.md
+
+spec/rag-api-contract.md
+
+spec/rag-ingestion.md
+
+spec/evaluation-strategy.md
+
+spec/ui-flow.md
+
+spec/test-strategy.md
+
+Create spec/implementation-plan.md.
+
+Break implementation into small, independently testable tasks.
+
+Recommended phases:
+
+Backend project configuration.
+
+Database and migrations.
+
+Domain entities and repositories.
+
+Ticket service and state machine.
+
+Ticket REST APIs.
+
+Comments and search.
+
+RAG embedding configuration.
+
+Vector-store integration.
+
+Ticket ingestion and re-ingestion.
+
+AI retrieval and grounded Q&A.
+
+Frontend implementation.
+
+End-to-end testing.
+
+Final code and RAG review.
+
+For each task include:
+
+Task ID.
+
+Description.
+
+Specification references.
+
+Dependencies.
+
+Expected files.
+
+Acceptance criteria.
+
+Unit tests.
+
+Integration tests.
+
+Identify tasks that can be developed independently.
+
+Do not start implementation yet.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+The user says all the specifications have been reviewed, but they haven't answered the decisions, and the specs are still unchanged. So the open review items still need handling. I won't apply the corrections silently; I'm weighing whether to plan against the current specs and flag affected tasks, or to add an explicit "spec corrections" gate before the work starts, with a dependency on the review decisions.
+
+I'm weighing whether to plan against the current specs and flag the affected tasks, or to add a spec corrections gate before the work starts. Before I commit to that, I want the requirement and test IDs exact, so I'm going to re-read the test strategy, with its UT and IT cases, and skim the data model and architecture config.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+I'll re-read the specs the plan depends on so task references and test ids match exactly.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/test-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/data-model.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I want to check the integration test IDs I saw earlier, plus the API contract and UI flow routes, and I also need to recall the FR list. I know the endpoints well enough, but I'll skim the UI flow quickly to confirm. Then I'll look at the java-springboot rule for package conventions and the project assessment for the Spring Boot and Maven versions.
+
+I'll read the project assessment and the Java rule now, and I'm also looking at the requirement headings for the FR names.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/docs/project-assessment.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/.cursor/rules/java-springboot.mdc</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "^(### FR-|### RAG|- NFR-[A-Z]+-\\d+|### NFR|## )"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/requirements.md",
+  "pattern": "^(### FR-|### RAG|- NFR-[A-Z]+-\\d+|### NFR|## )",
+  "topFiles": [
+    {
+      "matchCount": 64,
+      "uri": "spec/requirements.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 64
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/api-contract.md",
+  "pattern": "^(## |### )"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/api-contract.md",
+  "pattern": "^(## |### )",
+  "topFiles": [
+    {
+      "matchCount": 21,
+      "uri": "spec/api-contract.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 21
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ripgrep_raw_search"><details>
+<summary>Tool use: **ripgrep_raw_search**</summary>
+
+Parameters:
+
+```json
+{
+  "caseInsensitive": false,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md",
+  "pattern": "^(## |### )"
+}
+```
+Additional data:
+
+```json
+{
+  "isPruned": true,
+  "outputMode": "content",
+  "path": "/Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md",
+  "pattern": "^(## |### )",
+  "topFiles": [
+    {
+      "matchCount": 26,
+      "uri": "spec/rag-ingestion.md"
+    }
+  ],
+  "totalFiles": 1,
+  "totalMatches": 26
+}
+```
+Status: **completed**
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm noting that the project assessment says there's no git repo, but a .git folder exists now, so the user may have run git init, and that's fine. The user said all specs were reviewed but didn't give decisions on the open review items, so I'll plan against the current specs. I'm adding a Phase 0 gate, SPEC-01, to apply approved corrections first, and tagging any task affected by an unresolved review item with a "Review dep" marker.
+
+I'm planning to state the review recommendations D-1 through D-8 as the working assumption at the top of the plan, tag affected tasks as "Pending decision," and keep the plan explicit about it. The decisions are needed before those tasks run, but the plan itself can go ahead, and I'll bring the question up at the end.
+
+I'm settling on the test tooling now: component tests with Vitest and React Testing Library, since the spec calls for component tests plus a manual pass. Whether to add Playwright for end-to-end coverage is still an open call, so I'm leaving that as a pending decision. I'm also noting the test ID families (IT, UT, SM, ING, EV, G) that the plan will need to reference.
+
+I'm outlining the plan's structure now: a purpose and inputs section, ground rules covering assumptions, pending decisions, and the definition of done, then the dependency list with justifications, a phase overview with a dependency graph, and finally the individual tasks.
+
+I'm laying out the plan's tasks now, starting with Phase 0 for the pre-implementation gates. The first items are applying the approved spec-review corrections and setting up repo hygiene, including the .gitignore entries. I'm also planning a version and model spike to settle the open questions on library and model versions before any code is written.
+
+I'm settling the phase-0 layout now: the approved spec-review corrections come first as P0-01, and the version and model spike moves into the RAG phases, after the project scaffold exists, because it needs Ollama and a running app to test against. So Phase 0 is just the corrections and the repo hygiene work.
+
+I'm adding P0-03 as a separate, independent task to record the AI mistakes and decisions in the docs, then moving on to the backend phase. For BE-01, I'm planning a Maven scaffold with a wrapper, a Java 21 enforcer, and pinned Boot and Spring AI versions, keeping the dependencies minimal: web, data-jpa, validation, H2, Flyway, and test. The scaffold also gets a health smoke test and the base application config files.
+
+I'm defining the configuration properties for ticket limits, the RAG settings, and the CORS allowed origins, with validation that fails fast on bad values. I'll cover that with unit tests that check the validation directly.
+
+I'm defining the error-handling piece as BE-03: a shared error response model, a global exception handler, and a correlation-ID filter. Because the handler has to map exceptions the later tasks will throw, I'm creating those exception types here too: not-found, invalid transition, conflict, and service unavailable. I'll test it with a small test-only controller in a web-slice test.
+
+I'm settling the error codes for the shared error model: validation, not-found, invalid transition, conflict, service unavailable, and internal error, with a pending slot for an answer-not-verified code. I'm also deciding to leave the OpenAPI setup out of the CORS and security task and handle it later, once the endpoints exist to check parity against.
+
+I'm moving past the task list and the test IDs now, so the Actuator health and metrics skeleton is set aside until the readiness work in Phases 9 and 10. BE-04 will cover only CORS and the H2 console, and logging setup goes into BE-03. Next I'm laying out Phase 2, starting with DB-01: the Flyway baseline migration for the sequence and the tickets, comments, and ingestion tables, with their constraints and indexes, checked by integration tests.
+
+I'm splitting the database work so that DB-02 sets up the local file-backed profile and fails fast on a locked file or a failed migration, with an integration test that reopens the temp file DB. The public ID sequence is DB-oriented, but I'm moving it to Phase 3 as DOM-03, so the DB phase only covers DB-01 and DB-02. Next I'm starting the domain entities and repositories.
+
+I'm splitting the entity work into its own task, DOM-02, covering the Ticket, Comment, and TicketIngestion JPA mappings. The open question is whether Ticket should carry a `@Version` column for optimistic locking, which depends on the pending version-semantics decision (R-19), so I'm leaving that mapping choice flagged until it's settled.
+
+I'm settling the repository layer next: a ticket repository for lookups by public ID, filtered and paged listing, and escaped-LIKE search, plus comment and ingestion repositories with their due-row and count queries. The search piece gets deferred to Phase 6, so this task only covers the basic listing, and I'll check it against data-JPA slice tests with Flyway applied.
+
+I'm moving on to the service layer: the state machine will be a pure transition table, with an invalid-transition error that lists the allowed statuses. Next is a validator built from the configured limits that trims input and treats `UNASSIGNED` as reserved. Then the ticket service handles create, update, get and list, with its ingestion request wiring.
+
+The ingestion writer is where I'm leaning toward a fake for now, so the service tests can run without it. The real implementation, which upserts the ticket_ingestion row in the same transaction, waits until the ingestion phase, where its integration test can check that the ticket write and the ingestion request commit together.
+
+I'm planning the service layer in Phase 4: the ingestion request writer goes in as SVC-04 so every ticket write also records its ingestion row, with the worker consuming those rows later. After that come the status service for transitions, resolution notes and optimistic locking, and then the comment service with its atomic version increment. Each of these gets service-level tests plus an integration check against the database.
+
+I'm moving on to the REST layer in Phase 5. First comes the DTOs and mapper, then the create and get-by-ID endpoints, then the paged ticket list; status filtering and search will come later in Phase 6.
+
+I'm laying out the rest of the planned tasks: the API endpoints for list, update, and status changes, plus the OpenAPI contract check. Then Phase 6 covers the comments endpoint, the keyword search query, and the status and combined filters on the list.
+
+I'm moving on to the Ollama setup for embeddings: a Docker Compose service with a pinned image and a volume, reachable only from localhost, plus a runbook for pulling the model. Then I'm wiring the Spring AI Ollama starter with the embedding properties, and a deterministic hash-based fake embedding model for the default test profile. The real Ollama spike, which settles the prefix, starter name and rebuild-time questions into an ADR, I'll keep opt-in since it needs a running Ollama.
+
+I'm laying out the remaining Phase 3 and Phase 7 work: the embedding config for Ollama, with the Compose service and a Spring AI starter, then a fake embedding model for tests. I'm planning the real Ollama spike as an opt-in ADR task. For the chat model, I'm leaning toward folding its selection into the later AI evaluation phase rather than a separate spike, but I haven't settled that yet.
+
+I'm laying out the Phase 7 embedding config, with Ollama reachable at startup and its availability tracked so the AI features can be marked unavailable without stopping the ticket features. Next is Phase 8, the vector store: a knowledge index interface with a simple vector store bean built from the embedding model, supporting adding chunks and similarity search with a top-K multiplier and a threshold.
+
+I'm now defining the knowledge index and its operations for fetching chunks by ticket and deleting outdated versions, and I'll decide how to handle deletion by checking whether the vector store supports filter-based deletes or whether I need to track chunk IDs instead. The first acceptance check for that is a failing-first test, with the decision recorded afterward. Next up is the retrieval service, which applies the similarity threshold and top-K limits, uses a candidate multiplier, supports direct lookup, and filters results through the indexed-version lookup port.
+
+I'm sorting out the vector store work: the knowledge index interface and its bean come first, and the value types for chunk IDs and metadata can be built separately, in parallel with it.
+
+I'm now deciding how to prefix the task IDs for the ingestion phase, since the spec's ING-xx scenario IDs would clash with them. I'm leaning toward a distinct "IN-" prefix, with the other phases using their own unique prefixes so none collide with the test IDs.
+
+I'm now laying out Phase 9, the ingestion work, and I'm choosing task IDs in the form T9.1 and so on so they don't clash with the spec's test IDs. The first task is extraction and normalization into a ticket snapshot, covering the description, comments and resolution as separate documents, plus a case for empty tickets. The second is the chunker, which handles the header format, structure-first splitting, the size cap and overlap, and chunk IDs and metadata.
+
+I'm now moving into the ingestion worker work: the snapshot reader reads the ticket and its comments in a single read transaction, and the worker itself takes due rows, embeds and adds chunks outside the transaction, then commits the indexed version and status change. Failure handling with backoff and a FAILED state belongs there too. Last, I'm planning the scheduling piece, a single-threaded poll that also wakes after a commit and shuts down gracefully.
+
+I'm now sketching the startup reconciliation and the index readiness check, along with ingestion metrics and a health indicator. After that comes an end-to-end integration pass covering automatic re-ingestion, atomicity, and the gated fake case, and then the retrieval service for Phase 10, with its direct lookup and visibility rules.
+
+I'm laying out the Phase 10 retrieval and Q&A tasks: the prompt builder with its fixed system prompt, delimited context, escaping and budget limits, then a citation validator that checks the output grammar. After that comes the ask service, which handles the readiness check, the no-match path that skips the chat call, timeouts, the concurrency limit and logging, and finally the controller and response mapping.
+
+I'm finishing the Phase 10 breakdown by splitting the evaluation work into three tasks: a golden corpus loader, deterministic safety tests with fakes, and a live evaluation runner that is opt-in and calibrates thresholds. Phase 11, the front end, is next.
+
+I'm laying out the Phase 11 front end: scaffolding the Next.js app with strict TypeScript and a test runner, then an API client with typed errors. After that come the list, creation, and details pages, and I'm now working through the status change controls.
+
+I'm now outlining the frontend tasks, covering the error mapping and a cross-cutting pass for rendering safety. The frontend work can run in parallel with the backend by mocking the API contract in tests, and the early scaffolding and client tasks have no dependencies on the backend.
+
+I'm moving on to Phase 12, the end-to-end testing: a full-stack journey test through the HTTP API, a manual UI checklist with maybe a Playwright smoke test, a live RAG run against Ollama with a timed rebuild and baseline report, and non-functional and security checks.
+
+I'm moving to the final review stage, starting with an acceptance traceability audit to confirm every criterion maps to a test. After that come the Phase 13 tasks: a code review against the rules with lint, type checks, and a dependency audit, a RAG output review covering groundedness and injection results with threshold finalization, spec and OpenAPI parity along with documentation, and a security review that records the NFR-SEC-08 gap and ends with a sign-off checklist. I'm also noting that the assignment artefacts still need to be covered.
+
+I'm laying out the parallel tracks now, starting with the backend core as a sequential chain through the early tasks. The pure-logic pieces like the state machine, the validator, the chunker, the citation validator and the prompt builder only need the domain types, so they can start as soon as the first domain task is done.
+
+I'm now laying out the parallel tracks, with the infra work in Docker and the frontend work running off the API contract, and I'm noting the critical path from the corrections through the backend core, ingestion, QA, end-to-end tests and final review.
+
+I'm now planning the remaining review work: a proposed traceability check for the new test IDs, with their definitions coming from the P0-01 corrections, and I'm keeping the pending decisions tied to the tasks they affect.
+
+I'm listing the libraries to pin at the first backend task: the Spring web, JPA, validation, H2, and Flyway pieces, plus the OpenAPI tooling, the Spring AI Ollama and vector store modules (names still to confirm under the model-choice decision), and the test starter. On the frontend side it's Next.js, React, TypeScript, Vitest, the React Testing Library, and ESLint, each needing a short justification. I'm not putting version numbers in the plan.
+
+I'm writing out the task template for the remaining backend work, with a description, spec references, dependencies, expected files, and acceptance criteria for each task, and I'm keeping the entries compact so the plan stays readable.
+
+I'm now settling the file layout and the spec references for each task, so the per-task sections can stay short.
+
+I'm checking which UI items and state-machine ids the evaluation tests should cover: the UI checks span the create journey, list and details views, not-found, legal-actions-only, terminal and transition banners, notes validation, no edit or delete, empty and no-results states, combined search and filter, field and distinct messages, assistant-unavailable versus no-match, retained input, the drawer, and citation links. On the state-machine side, SM-01 through SM-05 are the allowed transitions, SM-06 through SM-16 are rejected (including the 404 case), and SM-17 and SM-18 cover concurrency and updatedAt with ingestion.
+
+I'm checking the remaining state-machine ids, SM-17 through SM-19, to confirm which ones cover concurrency, updatedAt with ingestion, and rejected writes, then I'll move on to the evaluation scenario ids and the parallel work tracks.
+
+I'm laying out the file for the Phase 1 backend scaffold, starting with the Maven project, wrapper, and the application entry point.
+
+I'm setting up the backend scaffold, with the Maven wrapper, the application entry point, and a context-load test. The versions need checking against the Spring AI BOM before I pin them, and the build should run on Java 21 with the Boot and Spring AI releases that are GA, not release candidates. Next is the typed configuration for the ticket limits.
+
+I'm setting up the exception and error-response layer next: an error model, an API error code set, a global exception handler, and a correlation ID so each failure can be traced.
+
+Next I'm planning the remaining exception handling: the domain exceptions, such as the invalid-transition one, will live in the domain package since the state machine throws them, while the web layer maps each one to a status and error code. I'll cover that with unit tests of the handler mapping, plus integration checks for malformed JSON, not-found, conflict, and a 500 that leaks no stack trace. After that comes the CORS setup and gating the H2 console, with no security layer yet.
+
+I'm wiring up the CORS rules next, so only the configured origins get through, with no wildcard and preflight handled, and the H2 console enabled only under the local profile. For the tests I'll check that an allowed origin gets through, that an unlisted one is refused, and that the console returns 404 outside local. Then I'm moving on to the Flyway baseline, covering the schema, constraints, and indexes from the data model, with Hibernate set to validate only.
+
+I'm now defining the local file-backed datasource, with the path set to `./data/tickets` by default and PostgreSQL mode, and I'm making startup fail fast with a clear message if the file is locked or the migration breaks. The integration check will migrate a temp-file database, close it, reopen it to confirm schema and rows persist, and confirm that a second connection to the same file fails clearly. Next comes the domain enums and value types for status and priority, with unit tests on them.
+
+I'm sketching the domain enums and value types for ticket status and priority, with a case-sensitive parse and a terminal-status check for closed and cancelled. Next I'll define the JPA entities for tickets and comments, mapped to the data model, with versioning and no entity exposed through the API. The repositories come after that, covering lookup by public ID, the ordered ticket list, comment ordering, and the public ID sequence.
+
+I'm laying out the persistence plan next: a state machine for allowed transitions, validation and normalization rules, and an ingestion request type, with the entity and repository for ingestion rows covering the due-row, per-status count, oldest-pending, and reset queries, each checked against seeded rows.
+
+I'm now covering the ingestion writer, which follows the lifecycle in §6.4. I'll keep its pure decision logic in unit tests and check each lifecycle event against the real H2 database. Then I'm laying out the ticket service for create, get, list, and update, along with its rollback behavior, and the status service that applies the allowed transitions.
+
+I'm moving on to the comment service, covering the concurrent-comment case where two writes both have to succeed and the version increments. After that I'm planning the DTOs and mappers for the ticket responses, with unit tests that check timestamps, null assignees, and that entities never reach the API.
+
+I'm now planning the HTTP endpoints for tickets: create and get by public ID, covering malformed JSON, ignored client fields, and 404s, then the list endpoint with paging checks, then PUT updates and status changes.
+
+I'm moving on to the OpenAPI contract check, comparing the generated paths, methods, and response codes against a checked-in expected list. After that come the comments endpoint, then the keyword search with parameterized, escaped queries and a SQL injection test, then the status filter combined with search. The last step is the Ollama setup for Phase 7.
+
+I'm laying out the Phase 7 Ollama pieces next: the embedding model wiring with a fake for tests, the availability check with startup logging, and the embedding and chat spikes with their numeric properties. Then I'm moving on to Phase 8, starting with the chunk, metadata key, and ID value types, which stay separate from the chunking logic planned for Phase 9.
+
+I'm laying out the remaining retrieval pieces: a RetrievalService that pulls from the knowledge index and the visibility lookup, then a PromptBuilder and a pure CitationValidator for the answer step.
+
+I'm moving into the Phase 10 pieces now: the ask endpoint and its DTOs, checked for the no-ticket-write rule, then a golden corpus loader that produces 25 tickets with the TKT-1001 to TKT-1011 anchors asserted. After that comes a deterministic integration suite for grounding, no-match, and injection, since with a fake embedding model the similarity scores won't be semantic.
+
+I'm planning the live evaluation runner next, opt-in and skipped when Ollama isn't running, to measure retrieval quality and answer checks against a baseline and tune the threshold, top-K, and chat model choice.
+
+I'm laying out the parallel work now: after the P0 setup and the first task, the validation and entity pieces can run side by side, and the pure logic tasks (state machine, validators, chunk types, retrieval prompts) can start as soon as their prerequisites are in place, without waiting on the database phase.
+
+I'm laying out the remaining work as a plan: the frontend tasks T11.1 to T11.9 can proceed independently of the backend once the contract is final, with integration at T12.1, and the docs task P0-03 runs alongside. I'm also adding a phase-level dependency graph, a critical path, and rough relative size estimates, kept loose rather than as commitments.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+The specs are read. I'm writing `spec/implementation-plan.md` now. Planning only; no code and no changes to existing files.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/implementation-plan.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+I've written the plan to `spec/implementation-plan.md`. It has 67 tasks across 14 phases (phase 0 plus your 13). No code was written, and I didn't change any existing file.
+
+Every task has the fields you asked for: ID, description, spec references, dependencies, expected files, acceptance criteria, unit tests and integration tests. Task IDs use a `T<phase>.<n>` format (for example `T4.5`) so they don't clash with spec scenario IDs like `UT-ST-01`. The unit and integration test lines cite those scenario IDs.
+
+- **Phase 0, gates:** I added this phase to your list. It covers applying the spec-review corrections (`T0.1`), a root `.gitignore` (`T0.2`), and recording AI mistakes and the commands and skill (`T0.3`).
+- **Independent work:** section 4.2 lists the groups that can run in parallel:
+  - Pure-logic tasks need no Spring, database or model: state machine, validator, chunker, prompt builder and citation validator.
+  - The frontend tasks build against the API contracts with stubbed `fetch`, and meet the real backend only in `T12.1`.
+  - Infrastructure and spikes touch separate files.
+- **Don't parallelize:** four task sets are called out, for example `T4.3` before `T4.4` to `T4.6`.
+- **Other sections:** a dependency graph with the critical path, a library table with a reason for each, and a step-by-step order of work.
+
+**Spec-review decisions not yet answered**
+- `docs/spec-review.md` D-1 to D-8 are still open, and the review corrections are not applied. I did not change any spec.
+- The plan assumes the review's recommendations, and tags the tasks that depend on each decision, such as `[D-1]`.
+- If you decide differently, only the tagged tasks change. The table in section 2 shows which ones.
+- `T0.1` is the only task that edits the specs and rules, and it blocks the tagged tasks.
+
+**Open choices that need your confirmation**
+- **Playwright:** it's marked optional in `T12.2`. The test strategy leaves browser automation out of v1.
+- **Health and metrics:** `T9.7` adds Spring Boot Actuator only if you approve the review's health design.
+- **Dependency versions:** none are invented in the plan. `T1.1` and `T11.1` pin them after checking against the official docs.
+- **Short spikes:** `T7.4` and `T8.2` settle the embedding prefixes, the library artifact names, and whether the vector store can delete by metadata filter (OD-04). The chat model and threshold are settled in `T10.8`.
+
+Next, tell me your answers to D-1 to D-8 so I can apply `T0.1`, or tell me to start `T0.2` and `T0.3`, which need no decisions.
