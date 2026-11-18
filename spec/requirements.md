@@ -123,7 +123,7 @@ Story: As a support agent, I want to move a ticket through its lifecycle so that
 The backend MUST enforce the state machine in section 5. Status is never changed through the generic update (FR-04).
 
 - AC1: A valid transition changes the status, refreshes `updatedAt`, and triggers re-ingestion (RAG-04).
-- AC2: Any transition not in the allowed list is rejected with a conflict error stating the current status, the requested status, and the allowed next statuses. The ticket is unchanged.
+- AC2: Any transition not in the allowed list is rejected with HTTP 400, stating the current status, the requested status, and the allowed next statuses. The ticket is unchanged. HTTP 409 is reserved for a lost optimistic lock and for edits or comments on a terminal ticket. The reason is in `spec/state-machine.md`.
 - AC3: Same-status requests (for example `OPEN` to `OPEN`) are rejected.
 - AC4: Moving to `RESOLVED` requires non-blank resolution notes (A-05). Without them the request is a validation error and the status is unchanged.
 - AC5: `CLOSED -> OPEN`, `RESOLVED -> OPEN`, and `CANCELLED -> OPEN` are each covered by a test.
@@ -226,7 +226,7 @@ Story: As a support agent, I want each answer to name its source tickets so that
 
 Story: As a support agent, I want an honest "nothing found" result so that I am not misled.
 
-- AC1: If retrieval produces no qualifying context, the response text is exactly `No relevant tickets were found for this question.`, with an empty citation list and a machine-readable no-match indicator.
+- AC1: If retrieval produces no qualifying context, the response is HTTP 200 with `answer` exactly `No relevant tickets found.`, `grounded` set to `false`, and `citations` empty. The shape is in `spec/rag-api-contract.md`.
 - AC2: In that case the chat model is not asked to produce ticket facts.
 - AC3: No-match is a normal successful outcome, distinct from validation errors and service errors.
 - AC4: The UI shows the no-match message as a normal result, not as an error.

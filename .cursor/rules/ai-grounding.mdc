@@ -28,7 +28,7 @@ Answer support questions about tickets and the knowledge base. If the question i
 If retrieval returns no chunks at or above the configured similarity threshold, do not call the chat model for ticket facts. Return this fallback exactly, with no extra sentence:
 
 ```text
-No relevant tickets were found for this question.
+No relevant tickets found.
 ```
 
 ## Facts vs assumptions

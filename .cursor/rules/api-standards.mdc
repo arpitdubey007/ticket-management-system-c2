@@ -16,7 +16,7 @@ alwaysApply: false
 
 - `GET` reads and is safe. `POST` creates. `PUT` replaces. `PATCH` partially updates. `DELETE` removes.
 - `200` for a successful read or update with a body. `201` for a create, with a `Location` header. `204` for a success with no body.
-- `400` for malformed JSON or failed bean validation. `404` for an unknown id. `409` for an illegal state transition or a conflict. `422` only when the body is well-formed but violates a domain rule that is not a state conflict.
+- `400` for malformed JSON, failed bean validation, or an illegal ticket status transition. `404` for an unknown id. `409` for a conflict: a lost optimistic lock, or an edit or comment on a terminal ticket. `422` only when the body is well-formed but violates a domain rule that is not a status transition or a conflict.
 - `500` only for unexpected failures. Do not map a missing ticket or a bad transition to `500`.
 
 ## Validation
@@ -39,8 +39,9 @@ Every error response uses the same JSON shape:
 {
   "status": 404,
   "error": "Not Found",
-  "message": "Ticket 123 was not found.",
-  "path": "/api/tickets/123",
+  "code": "NOT_FOUND",
+  "message": "Ticket TKT-1001 was not found.",
+  "path": "/api/tickets/TKT-1001",
   "timestamp": "2026-11-18T10:15:30Z"
 }
 ```
