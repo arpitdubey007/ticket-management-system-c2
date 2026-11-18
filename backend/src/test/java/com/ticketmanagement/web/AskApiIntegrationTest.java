@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Duration;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.ticketmanagement.config.TestChatConfig.ScriptableTestChatModel;
 import com.ticketmanagement.domain.IngestionStatus;
 import com.ticketmanagement.rag.AskResult;
+import com.ticketmanagement.rag.IndexReadiness;
 import com.ticketmanagement.rag.IngestionWorker;
+import com.ticketmanagement.config.RagProperties;
 import com.ticketmanagement.repository.TicketIngestionRepository;
 import com.ticketmanagement.repository.TicketRepository;
 import com.ticketmanagement.service.TicketService;
@@ -48,11 +51,18 @@ class AskApiIntegrationTest {
     @Autowired
     private TicketRepository ticketRepository;
 
+    @Autowired
+    private IndexReadiness indexReadiness;
+
+    @Autowired
+    private RagProperties ragProperties;
+
     @BeforeEach
     void resetState() {
         chatModel.reset();
         ticketIngestionRepository.deleteAll();
         ticketRepository.deleteAll();
+        indexReadiness.resetPending(Set.of());
     }
 
     @Test
@@ -153,6 +163,31 @@ class AskApiIntegrationTest {
                 .andExpect(jsonPath("$.answer").value(AskResult.NO_MATCH_ANSWER))
                 .andExpect(jsonPath("$.grounded").value(false))
                 .andExpect(jsonPath("$.citations").isEmpty());
+        assertThat(chatModel.getCallCount()).isZero();
+    }
+
+    @Test
+    void overlongQuestionReturns400WithoutCallingChat() throws Exception {
+        String question = "x".repeat(ragProperties.getAsk().getQuestionMax() + 1);
+        mockMvc.perform(post("/api/ai/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"question\":\"" + question + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        assertThat(chatModel.getCallCount()).isZero();
+    }
+
+    @Test
+    void askWhenIndexNotReadyReturns503() throws Exception {
+        indexReadiness.resetPending(Set.of("TKT-1001"));
+        mockMvc.perform(post("/api/ai/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"question":"What tickets are open?"}
+                                """))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("SERVICE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("The assistant is unavailable. Try again later."));
         assertThat(chatModel.getCallCount()).isZero();
     }
 
