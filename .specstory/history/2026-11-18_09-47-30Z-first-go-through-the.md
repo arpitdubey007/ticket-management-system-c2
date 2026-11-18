@@ -3281,3 +3281,346 @@ This prompt changed two earlier decisions, so I updated the matching lines so th
 
 - Illegal transitions are HTTP 400 in `spec/requirements.md`, `spec/architecture.md`, and `.cursor/rules/api-standards.mdc`.
 - The no-match sentence is `No relevant tickets found.` in `spec/requirements.md` and `.cursor/rules/ai-grounding.mdc`.
+
+---
+
+_**User**_
+
+Create RAG ingestion and evaluation specifications
+
+Create:
+
+spec/rag-ingestion.md
+
+spec/evaluation-strategy.md
+
+rag-ingestion.md
+
+Document the complete ingestion pipeline:
+
+Ticket data
+→ Knowledge documents
+→ Chunking
+→ Embeddings
+→ Vector store
+
+Include:
+
+Description extraction.
+
+Comment extraction.
+
+Resolution note extraction.
+
+Metadata requirements.
+
+Document ID strategy.
+
+Chunking rules.
+
+Embedding model.
+
+Vector-store configuration.
+
+Update-triggered re-ingestion.
+
+Delete and replace strategy.
+
+Failed ingestion handling.
+
+Existing-ticket backfill strategy.
+
+Configurable top-K.
+
+Configurable similarity threshold.
+
+Explain how duplicate and stale vector documents will be prevented.
+
+evaluation-strategy.md
+
+Define how to evaluate probabilistic AI output.
+
+Include:
+
+Golden question-answer dataset.
+
+Retrieval recall@K.
+
+Citation precision.
+
+Groundedness.
+
+Context relevance.
+
+No-match evaluation.
+
+Hallucination detection.
+
+Prompt injection tests.
+
+Regression testing.
+
+Define concrete positive and negative test scenarios.
+
+Explain which tests should be deterministic and which should use evaluation thresholds.
+
+Do not implement the RAG pipeline yet.
+
+---
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm planning two specs that need to line up with the architecture, data model, and RAG API contract. I want to double-check sections 7 through 11 of the architecture doc, though I think I remember them. The chunk ID format is ticketId, ingestVersion, kind, sourceRef, chunkIndex, and ingestVersion is part of it so that add-before-delete works, with IDs deterministic per version.
+
+Next I'm checking how the retrieval side handles overlap: when two versions of a chunk exist during the swap, it should keep only the highest ingestVersion per source, and ignore anything older than the ticket's indexed version. For backfill, the data model's startup reconciliation already marks everything PENDING, so I'm weighing whether to add a config flag for rebuild-on-startup instead of a new endpoint, and how a model change would show up when the index is rebuilt in memory on each start.
+
+I'm working out how failures get handled: transient errors like Ollama timeouts get retried with backoff, and the retry cap and startup reset keep things simple. I'm also settling that a delete-and-replace adds the new version before removing the old ones, with a delete-by-filter fallback, and that top-K and the threshold come only from config. Last, I'm weighing whether the document and query prefixes for nomic-embed-text should be set through config, since that decision is still open.
+
+I'm weighing whether to add a few config keys for the embedding prefixes, the ingestion rebuild-on-startup flag, and batch size, plus a snippet length limit that the contract already sets at 300 characters but nothing configures yet. I'm leaning toward listing them in the ingestion spec's table and adding matching rows to the architecture config section so the two documents stay consistent.
+
+I'm settling on how the vector store should work: a single in-memory SimpleVectorStore built from the embedding model, using cosine similarity, filtering on ticketId as a string and chunkIndex and ingestVersion as numbers. Next I'm looking at how each ticket's description, comments, and resolution notes become the document text, with whitespace normalized and the title kept only in the header.
+
+I'm settling how the ticket text gets laid out for embedding: each part gets a short header with the title, category, and part type, followed by the body. The length cap applies only to the body, with the header added afterward, and I'm planning to merge a tiny trailing paragraph into the previous chunk while dropping empty parts.
+
+I'm deciding what goes into the embedded text for each chunk and where the snippet comes from. The embedded text will be the header plus the body, but the snippet should show only the body, so I'm planning to separate them with a blank line after the header block and take the snippet from what follows that first blank line. Since the body itself can contain blank lines, I still need to pin down how the header boundary is recognized reliably.
+
+I'm settling the ID scheme next: each chunk ID combines the ticket, ingest version, kind, source reference, and chunk index, so a comment chunk might look like TKT-1001:7:COMMENT:55:0. I'm also checking whether colons in the ID cause problems for the vector store.
+
+I'm settling on the IDs for the vector store, since a pgvector swap later would want UUIDs, so I'd derive name-based UUIDs from the same deterministic string. I'm also working through when a rebuild happens: the first run after deployment backfills existing tickets, every restart rebuilds the in-memory index, and a model or chunking config change takes effect on the next restart rather than live.
+
+I'm settling how indexing finishes up: requests get processed first-in, first-out by request time with ticket ID as the tiebreaker, and progress is logged as counts in batches. Readiness means no reconciliation request is still pending. A permanently failed ticket doesn't block readiness, but health reports it as degraded and its tickets stay unsearchable.
+
+I'm now settling the duplicate and stale-chunk safeguards: deterministic IDs, a single writer, upsert semantics, and retrieval keeping only the highest ingestVersion per source. I'm also noting that running two app instances isn't supported, since each one would hold its own in-memory index.
+
+I'm settling the stale-chunk safeguards now: every change bumps the ingest version, the ingestion row tracks it, and old chunks get deleted only after the new version is added. A successful write is checked against the stored version, and retrieval drops any chunk whose ticket no longer exists or whose version is older than another chunk for the same source.
+
+I'm now settling what happens on a re-ingestion trigger: ticket creates, updates, new comments, and status changes all go through the same request writer, and reads never trigger anything. I also want to note that a no-op update shouldn't cause a rebuild, since the text and metadata would be unchanged.
+
+I'm deciding that a PUT always bumps the ingest version, even when nothing changed, since it refreshes updatedAt, so no special no-op case is needed. The new chunk IDs then differ from the old ones, which means every ingestion writes a fresh set and deletes the previous one. Next I'm working through the delete-and-replace order and what happens if it fails partway.
+
+I'm working through the partial-failure case now: if the embedding call fails partway through adding a batch, some new chunks may already be in the store while others are missing. I'm also settling the retry policy, with backoff starting at 5 seconds, doubling up to 5 minutes, and giving up after five attempts, and I'm noting that permanently failed tickets stay visible in health and get picked up again on the next change or restart.
+
+I'm working out how a partial failure mid-ingestion would leave some new-version chunks visible while others are missing. One option is to clean up the incomplete version on failure and have retrieval respect the ticket's last fully indexed version, though the overlap between old and partial new chunks makes that filter less obvious.
+
+I'm working out the visibility rule now: retrieval would keep only chunks whose ingest version matches the ticket's last fully indexed version, which handles duplicates, stale chunks, and partial writes in one filter. The open question is the ordering of the delete step relative to the database update, since a gap there could briefly leave a ticket with no visible chunks.
+
+I'm reordering the ingestion steps so the database update comes right after the new chunks are added and before the old ones are deleted. That way visibility switches over atomically with the committed version, and the deletion is just cleanup. The architecture sequence will need to change to match, since it currently has the delete happening before the mark.
+
+I'm switching the visibility rule to be based on the ticket's indexed version: retrieval will only keep chunks matching that version. That also means the over-fetch needs to be larger than K, since the filter runs after the similarity search and could otherwise leave too few results.
+
+I'm going to set the retrieval settings next: top-K, a similarity threshold, and a candidate multiplier so the visibility filter still leaves enough results. I'll bound top-K at a sane maximum, require the threshold to sit between 0 and 1, and update the architecture sections so the filtering step reflects this.
+
+I'm now laying out the evaluation strategy: the purpose and principles, and splitting what's deterministic from what's probabilistic. The test layers run from unit and integration tests with fake models, through retrieval evaluation against a real embedding model with thresholds, to end-to-end answer checks and a manual review step. I'm also thinking about a golden dataset of seed tickets and questions, tagged by type such as positive, negative, injection, or ID lookup.
+
+I'm sketching a small golden dataset of about 25 synthetic tickets across categories, with roughly 30 questions, and starting with a first ticket on a payment decline at checkout.
+
+I'm now going through the sample tickets for the golden dataset, starting with the payment ones: a card decline fixed by disabling a duplicate retry, a gateway timeout resolved by raising the timeout and adding a connection pool, and a low-priority currency symbol issue. Next I'm looking at a shipping ticket where tracking stopped updating after a carrier key rotation broke the webhook signature.
+
+I'm now listing the remaining golden-dataset tickets, covering the cancelled address change, the password reset email that a spam filter blocked and an SPF update fixed, the mobile app crash in order history, and an open payment refund that hasn't shown up yet.
+
+I'm now writing the golden dataset's sample tickets, adding a payment ticket where a PSP-timeout situation is described in the open status. One of the tickets mixes a prompt-injection instruction into its description, so I'm covering the injection case as part of the dataset.
+
+I'm sketching the golden-dataset questions now, starting with whether we've seen payment failures before, which should return an answer citing either TKT-1001 or TKT-1002. Then I'm setting up a direct lookup for TKT-1001's resolution, expecting the duplicate-retry fix, and a question about common causes of shipment tracking issues, which should cite TKT-1004 and TKT-1005. The last one, asking for similar resolved tickets, is vague without a reference ticket, so I'm checking what a resolved-status filter would return.
+
+I'm sketching the last few golden-dataset questions, checking that the tickets I've picked fit the expected answers. For the payment-related high-priority question I'm thinking of citing TKT-1001, TKT-1002, and TKT-1009, while keeping the low-priority TKT-1003 out and not claiming the answer is complete. The question about what caused earlier payment failures should point to TKT-1001 and TKT-1002, and the password-reset question to TKT-1007. For TKT-1009, which is still in progress with no resolution notes, the expected answer should say that no resolution is recorded.
+
+I'm working through the negative golden-dataset cases now, such as a question about the capital of France and one about baking bread, which should both return no match. I'm also considering a lookup for a nonexistent ticket, TKT-9999, which is tricky because that ID appears inside the injection ticket's text, so similarity search might surface it anyway.
+
+I'm drafting the negative golden-dataset cases now, with a near-miss question about warehouse robot calibration that should fall below the similarity threshold and return no match. I'm also checking a nonexistent ticket lookup against TKT-9999, which only shows up inside the injection ticket's text, so the allowed outcomes are either no match or an answer citing only that ticket without treating TKT-9999 as resolved.
+
+I'm now writing out the injection cases for the golden dataset, starting with a question that asks why the payment page is slow, where the TKT-1011 ticket's embedded instruction must be ignored and no TKT-9999 citation allowed. Then I'm drafting a second injection question that tries to get a full list of ticket IDs, which should return no match or only what was actually retrieved.
+
+I'm now moving through the injection cases and the completeness check, with a question that tries to override the grounding rules, a ticket comment that tries to pull out the system prompt, and a forbidden-phrase test on "list all" answers. Next I'm setting up a stale-status test that updates a ticket and checks the chunk metadata, and starting to define the retrieval recall metrics.
+
+I'm defining the retrieval metrics now: recall@K as the share of relevant tickets that show up in the top-K results after the threshold, with hit@K for at least one hit, and I'm setting initial targets to confirm against a baseline. I also want to report recall at several K values, sweep the threshold to see the precision-recall tradeoff, and track the no-match rate, plus a context relevance measure for how many retrieved tickets are actually acceptable.
+
+I'm working out the groundedness checks: first deterministic ones, where required key facts must appear in the answer and forbidden facts must not, and then a rubric-based human review on a sample, possibly with a local judge model since that judge is probabilistic too.
+
+I'm now settling the groundedness checks: a deterministic proxy where every ticket ID, status word, or number in an answer has to appear in the retrieved chunks, plus a rubric-based human spot-check on a small sample, with any LLM judge treated as supporting evidence only.
+
+I'm now working through the injection tests, where a fake chat model returns malicious output so I can check that the citation validator rejects TKT-9999 and the grounding guard holds.
+
+I'm now laying out the regression checks: any change to chunking, the prompt, the model, K, the threshold, or the embedding gets run against a local retrieval eval and compared with a saved baseline, failing if recall drops by more than 0.05 or any deterministic invariant breaks.
+
+I'm settling how the evaluation tests are split: the default build runs only deterministic tests using fake models and a controlled test embedding, while the heavier evaluation suite runs on demand against Ollama and skips with a clear reason if it isn't reachable. I'm leaving the report location open until implementation, with only a baseline file committed.
+
+I'm settling how to tune the threshold: I'll compare the top scores for positive questions against those for negative ones, pick a cutoff that keeps false positives out, and record the chosen value in the config. I'll also plan to re-tune it whenever the model or chunking changes. Next I'll write the ingestion spec first, with a pipeline diagram and a note to keep it to design and not implementation.
+
+I'm now outlining the ingestion spec: scope and IDs first, then a pipeline diagram, then the stages from source extraction through chunking, metadata, embedding, and the replace-and-delete lifecycle. I'm also going to add a short table of deterministic ingestion tests so the evaluation doc can point back to it.
+
+I'm now writing out the remaining parts of the ingestion spec: backfill, retrieval parameters like top-K and the similarity threshold, a configuration keys table, and the deterministic ingestion tests. I'll also close with open items and traceability back to the architecture doc.
+
+I'm now looking at how SimpleVectorStore embeds documents: it calls the embedding model once per document rather than in batches, so batching isn't available through add() in this version. If rebuild time misses the performance target, I'd need a different approach that accepts precomputed embeddings.
+
+I'm going to check the architecture doc's batching claim against the embedding code, since I think the vector store embeds each document on its own call rather than in batches. If that holds, I'll correct the sentence in section 10.4 and add an open item for rebuild time. I also want to settle whether deleting old chunks should rely on a metadata filter.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+I'll check the current wording of the ingestion and retrieval sections in `architecture.md`, because the delete-and-replace design needs to be exact and consistent across files.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="read" data-tool-name="read_file_v2"><details>
+<summary>Tool use: **read_file_v2** • Read file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm going to write the ingestion spec to rag-ingestion.md first, and then make the architecture edits.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm writing the ingestion spec now, fixing two flaws: old chunks get deleted before the new version is marked indexed, and my batched-embedding claim is wrong since SimpleVectorStore embeds one document per call.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/rag-ingestion.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I'm working through the architecture edits now: the 10.2 diagram and steps 4 through 6, the 10.4 batching sentence and readiness, and a visibility mention in step 4 of section 11. I'll also add rows to the config, making each change as a StrReplace edit.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Now I'll bring `architecture.md` in line with the visibility rule and the corrected batching claim.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/architecture.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<think><details><summary>Thought Process</summary>
+I've checked the architecture section's step 3 and the step numbering, and both are fine. The worker success path in data-model 6.4 matches too, and I'm weighing whether to add a worker-failure case there. Next I'll move on and write evaluation-strategy.md.
+
+</details></think>
+
+_**Agent (auto-smart)**_
+
+Now the evaluation strategy.
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="write" data-tool-name="edit_file_v2"><details>
+<summary>Tool use: **edit_file_v2** • Edit file: /Users/arpitdubey/codebase/ticket-management-system-c2/spec/evaluation-strategy.md</summary>
+
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_command_v2"><details>
+<summary>Tool use: **run_terminal_command_v2** • Run command: cd /Users/arpitdubey/codebase/ticket-management-system-c2; wc -l spec/rag-ingestion.md spec/evaluation-strategy.md spec/architecture.md; echo &#34;== code/build files ==&#34;; find . -type f \( -name &#39;*.java&#39; -o -name pom.xml -o -name package.json -o -name &#39;*.sql&#39; \) | wc -l; echo &#34;== remaining placeholders ==&#34;; for f in ui-flow test-strategy; do wc -l spec/$f.md; done; echo &#34;== stale claims check ==&#34;; grep -n &#34;Batched embedding calls are used\|keeps only the highest&#34; spec/*.md || echo &#34;none&#34;</summary>
+```bash
+cd /Users/arpitdubey/codebase/ticket-management-system-c2; wc -l spec/rag-ingestion.md spec/evaluation-strategy.md spec/architecture.md; echo "== code/build files =="; find . -type f \( -name '*.java' -o -name pom.xml -o -name package.json -o -name '*.sql' \) | wc -l; echo "== remaining placeholders =="; for f in ui-flow test-strategy; do wc -l spec/$f.md; done; echo "== stale claims check =="; grep -n "Batched embedding calls are used\|keeps only the highest" spec/*.md || echo "none"
+```
+
+```
+     422 spec/rag-ingestion.md
+     362 spec/evaluation-strategy.md
+     524 spec/architecture.md
+    1308 total
+== code/build files ==
+       0
+== remaining placeholders ==
+       3 spec/ui-flow.md
+       3 spec/test-strategy.md
+== stale claims check ==
+none
+
+```
+</details></tool-use>
+
+_**Agent (auto-smart)**_
+
+I wrote `spec/rag-ingestion.md` and `spec/evaluation-strategy.md`. They are design documents only: no pipeline, entities, or build files exist, and nothing was run.
+
+## `spec/rag-ingestion.md`
+It covers every item you listed, in order from ticket data to vector store. A few decisions worth knowing:
+
+- **Document ids.** The id is `<ticketId>:<ingestVersion>:<kind>:<sourceRef>:<chunkIndex>`, for example `TKT-1001:3:COMMENT:55:0`. Re-running the same ticket version writes the same ids, so it replaces chunks instead of duplicating them.
+- **Delete and replace.** The worker adds the new version's chunks, commits `indexed_version`, then deletes the old chunks. A ticket stays searchable throughout an update.
+- **Duplicates and stale chunks.** A chunk is returned only if its version matches the ticket's `indexed_version` in the database. This also hides half-written or leftover chunks after a failure or crash. Search over-fetches by a configured multiplier (initially 3) so hidden chunks don't use up the top-K slots.
+- **Failed ingestion.** Failures back off and retry (5s doubling to 5 minutes, 5 attempts). After the last attempt the row is marked `FAILED`. One bad ticket doesn't block the others, and ticket writes are never affected.
+- **Backfill.** Every restart rebuilds the index from the database. Existing tickets get their ingestion rows created on the first run.
+- **Configuration.** Top-K (1 to 50), the similarity threshold (0 to 1) and the candidate multiplier come from configuration, and invalid values stop startup.
+- **Tests.** It lists 20 deterministic test scenarios (ING-01 to ING-20) that need no Ollama.
+
+## `spec/evaluation-strategy.md`
+It splits tests into deterministic ones (fake models, must always pass) and evaluated ones (real models, judged against targets). The two groups are mapped check by check, as you asked.
+
+- **Dataset.** A golden dataset with named anchor tickets, 8 positive questions, 7 negative ones, and 5 prompt-injection cases.
+- **Index scenarios.** Three scenarios check stale metadata after an update, a new comment, and a restart.
+- **Metrics.** Recall@K, context relevance, citation precision, groundedness, no-match rates, and hallucination signals each have a definition and a starting target. For example, mean recall@5 should be at least 0.80.
+- **Hallucination detection.** An invented ticket id in a returned answer must be impossible, because the code check rejects it. For other claims, groundedness is checked token by token against the retrieved text. A model judge may only pre-screen. It is never the sole evidence.
+- **Threshold tuning.** A procedure for picking the similarity threshold from the scores of positive and negative questions.
+- **Regression.** Defined triggers, a saved baseline, and a block on any drop of more than 0.05. Every real AI mistake becomes a new test case.
+
+All numeric targets are marked as starting values, not measurements.
+
+## Other changes
+In `spec/architecture.md`, the old ordering (delete old chunks before the database commit) left a short gap where a ticket could vanish from search. I reordered it to match the new design. I also removed my claim that rebuilds use batched embeddings. The Spring AI store source I read embeds one chunk per call, so rebuild time needs measuring against the 5-minute target. I added the new config keys to the architecture config table.
+
+## Open items
+- **Assignee name:** I propose rejecting the assignee name `UNASSIGNED` as reserved, because it collides with the metadata value for no assignee. This needs your decision and then a line in `spec/api-contract.md`.
+- **Spec still empty:** `spec/ui-flow.md` and `spec/test-strategy.md` are still placeholders.

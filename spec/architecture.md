@@ -294,8 +294,8 @@ sequenceDiagram
   W->>W: build chunks (TicketChunker)
   W->>O: embed chunks via vector store add
   W->>V: add chunks with ingestVersion N
+  W->>Db: set indexed version N (chunks of N become visible)
   W->>V: delete this ticket's chunks with other ingestVersion
-  W->>Db: mark indexed version N (only if still current)
 ```
 
 Behavior:
@@ -303,9 +303,10 @@ Behavior:
 1. The worker polls for due rows at a configured interval and can also be woken after commit. It processes one ticket at a time.
 2. It reads the ticket and its comments in one read transaction and records the ticket `version` it saw (N). No model call runs inside a database transaction.
 3. It builds the chunks and adds them with `ingestVersion` N. This embeds each chunk through Ollama.
-4. After the add succeeds, it deletes that ticket's chunks whose `ingestVersion` is not N. Adding before deleting means the ticket is never left with zero chunks. For a short moment old and new chunks both exist, and retrieval keeps only the highest `ingestVersion` per chunk source, so stale text is not returned. After the delete, no earlier version is retrievable (RAG-04).
-5. It marks the row as indexed at version N only if the requested version is still N. If another change arrived meanwhile, the row stays pending for the newer version.
-6. On failure (Ollama down, timeout), it records the error, increments the attempt count, and schedules the next try with exponential backoff, up to a configured maximum. After the maximum the row is `FAILED` and stays visible in metrics (NFR-REL-02, NFR-OBS-03). Ticket writes are never affected.
+4. After the add succeeds, it records `indexed_version` N in the database. This commit is the moment the new version becomes visible. Retrieval returns a chunk only when its `ingestVersion` equals the ticket's `indexed_version` (visibility rule, `spec/rag-ingestion.md` section 10), so the switch from the old version to the new one is atomic and a ticket is never missing from search during an update.
+5. The row is set to `INDEXED` only if the requested version is still N. If another change arrived meanwhile, the row stays pending for the newer version.
+6. Then it deletes that ticket's chunks whose `ingestVersion` is not N. This is cleanup. Those chunks are already invisible, so a failed or skipped delete exposes nothing stale (RAG-04).
+7. On failure (Ollama down, timeout), it removes any partly added chunks of version N, records the error, increments the attempt count, and schedules the next try with exponential backoff, up to a configured maximum. After the maximum the row is `FAILED` and stays visible in metrics (NFR-REL-02, NFR-OBS-03). Ticket writes are never affected.
 
 ### 10.3 Idempotency and errors
 
@@ -314,7 +315,7 @@ Behavior:
 
 ### 10.4 Startup reconciliation (A-12, RAG-05a)
 
-Because the index is in memory, a restart empties it. At startup the application marks every ticket's ingestion row as pending for its current version (creating missing rows) and the worker processes them. `IndexReadiness` becomes ready once every ticket has been indexed once in this run. Until then the ask endpoint returns a service-unavailable error rather than a misleading no-match (NFR-REL-06). Batched embedding calls are used to keep the rebuild within NFR-PRF-06; the actual time is measured (OD-05).
+Because the index is in memory, a restart empties it. At startup the application marks every ticket's ingestion row as pending for its current version (creating missing rows) and the worker processes them. `IndexReadiness` becomes ready once no row from the startup run is still pending. A ticket that exhausts its retries does not hold readiness back, and is reported as degraded in health. Until then the ask endpoint returns a service-unavailable error rather than a misleading no-match (NFR-REL-06). The store embeds one chunk per call in the Spring AI source reviewed, so the rebuild time is measured against NFR-PRF-06 (OD-05). Options if it is too slow are listed in `spec/rag-ingestion.md` section 6.
 
 ---
 
@@ -345,7 +346,7 @@ Steps:
 1. Validate the question (non-blank, within limit) before any model call (FR-12 AC2).
 2. If the index is not ready, return service unavailable (NFR-REL-06).
 3. Find ticket ids of the form `TKT-<number>` in the question (case-insensitive, normalized).
-4. Similarity search: embed the question and take up to top-K chunks whose cosine similarity is at or above the threshold (RAG-06, RAG-07).
+4. Similarity search: embed the question and fetch candidate chunks (top-K times a configured multiplier). Drop chunks that fail the visibility rule (`spec/rag-ingestion.md` section 10). Keep up to top-K of the rest whose cosine similarity is at or above the threshold (RAG-06, RAG-07).
 5. Direct lookup: for each named ticket that exists, fetch its chunks by `ticketId` metadata. These count as context regardless of score, because the user named the ticket (A-15, RAG-15a). A named ticket that does not exist adds nothing.
 6. Merge, de-duplicate, and cap total context size by configuration. Direct-lookup chunks are kept first when trimming.
 7. If there is no context, return the fixed no-match response without calling the chat model (FR-14, RAG-11). Unrelated questions normally end here because nothing passes the threshold (FR-12 AC5).
@@ -421,6 +422,8 @@ Profiles: `local` (default for development, file-backed H2, H2 console allowed) 
 | `app.rag.similarity-threshold` | 0.5 | Range 0 to 1, tuned on the evaluation set (OD-02). |
 | `app.rag.chunk.max-chars` | 1500 | Section 9. |
 | `app.rag.chunk.overlap-chars` | 150 | Used only by the last-resort length split. |
+| `app.rag.retrieval.candidate-multiplier` | 3 | Over-fetch before the visibility filter. |
+| `app.rag.embedding.document-prefix`, `app.rag.embedding.query-prefix` | empty | Task prefixes, open (OD-03). |
 | `app.rag.context.max-chars` | 6000 | Caps prompt context. |
 | `app.rag.ask.timeout` | 60s | NFR-PRF-05. |
 | `app.rag.ingestion.poll-interval` | 2s | |
